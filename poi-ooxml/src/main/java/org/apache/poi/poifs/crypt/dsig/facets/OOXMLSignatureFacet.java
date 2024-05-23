@@ -173,6 +173,9 @@ public class OOXMLSignatureFacet implements SignatureFacet {
                 try {
                     PackagePartName relName = PackagingURIHelper.createPartName(partName);
                     PackagePart pp2 = opcPackage.getPart(relName);
+                    if (pp2 == null) {
+                        throw new XMLSignatureException("Failed to find part " + relName);
+                    }
                     contentType = pp2.getContentType();
                 } catch (InvalidFormatException e) {
                     throw new XMLSignatureException(e);
@@ -352,7 +355,7 @@ public class OOXMLSignatureFacet implements SignatureFacet {
      */
     private static final Set<String> signed = Stream.of(
             "activeXControlBinary", "aFChunk", "attachedTemplate", "attachedToolbars", "audio", "calcChain", "chart", "chartColorStyle",
-            "chartLayout", "chartsheet", "chartStyle", "chartUserShapes", "commentAuthors", "comments", "connections", "connectorXml",
+            "chartLayout", "chartsheet", "chartStyle", "chartUserShapes", "classificationlabels", "commentAuthors", "comments", "connections", "connectorXml",
             "control", "ctrlProp", "customData", "customData", "customProperty", "customXml", "diagram", "diagramColors",
             "diagramColorsHeader", "diagramData", "diagramDrawing", "diagramLayout", "diagramLayoutHeader", "diagramQuickStyle",
             "diagramQuickStyleHeader", "dialogsheet", "dictionary", "documentParts", "downRev", "drawing", "endnotes", "externalLink",

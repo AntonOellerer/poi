@@ -99,7 +99,7 @@ import org.apache.poi.util.StringUtil;
  *  The trailing underscore and space ("_ ") in the format adds a space to the end and Excel formats this cell as {@code "12.34 "},
  *  but {@code DataFormatter} trims the formatted value and returns {@code "12.34"}.
  * </p>
- * You can enable spaces by passing the {@code emulateCSV=true} flag in the {@code DateFormatter} cosntructor.
+ * You can enable spaces by passing the {@code emulateCSV=true} flag in the {@code DateFormatter} constructor.
  * If set to true, then the output tries to conform to what you get when you take an xls or xlsx in Excel and Save As CSV file:
  * <ul>
  *  <li>returned values are not trimmed</li>
@@ -371,6 +371,10 @@ public class DataFormatter {
     }
 
     private Format getFormat(double cellValue, int formatIndex, String formatStrIn, boolean use1904Windowing) {
+        if (formatStrIn == null) {
+            throw new IllegalArgumentException("Missing input format for value " + cellValue + " and index " + formatIndex);
+        }
+
         checkForLocaleChange();
 
         // Might be better to separate out the n p and z formats, falling back to p when n and z are not set.
@@ -492,7 +496,11 @@ public class DataFormatter {
            return generalNumberFormat;
         }
 
-        if(DateUtil.isADateFormat(formatIndex,formatStr) &&
+        if (formatStr == null) {
+            return null;
+        }
+
+        if(DateUtil.isADateFormat(formatIndex, formatStr) &&
                 DateUtil.isValidExcelDate(cellValue)) {
             return createDateFormat(formatStr, cellValue);
         }
@@ -806,7 +814,7 @@ public class DataFormatter {
                 } else if (obj instanceof Double) {
                     obj = (Double) obj / divider.doubleValue();
                 } else {
-                    throw new UnsupportedOperationException();
+                    throw new UnsupportedOperationException("cannot scaleInput of type " + obj.getClass());
                 }
             }
             return obj;
@@ -914,7 +922,7 @@ public class DataFormatter {
                 sdf.setTimeZone(LocaleUtil.getUserTimeZone());
                 dateFormat = sdf;
             } else {
-                dateFormat = defaultNumFormat;
+                dateFormat = defaultDateformat;
             }
         }
         synchronized (dateFormat) {

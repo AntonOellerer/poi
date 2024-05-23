@@ -17,7 +17,6 @@
 
 package org.apache.poi.ss.usermodel;
 
-import static org.apache.commons.io.output.NullOutputStream.NULL_OUTPUT_STREAM;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -33,6 +32,7 @@ import java.util.ConcurrentModificationException;
 import java.util.Iterator;
 import java.util.Spliterator;
 
+import org.apache.commons.io.output.NullOutputStream;
 import org.apache.poi.hssf.HSSFTestDataSamples;
 import org.apache.poi.ss.ITestDataProvider;
 import org.apache.poi.ss.usermodel.ClientAnchor.AnchorType;
@@ -784,7 +784,7 @@ public abstract class BaseTestWorkbook {
                 c.setCellStyle(cs);
                 c.setCellValue("AAA");
             }
-            assertDoesNotThrow(() -> workbook.write(NULL_OUTPUT_STREAM));
+            assertDoesNotThrow(() -> workbook.write(NullOutputStream.INSTANCE));
         }
     }
 
@@ -872,6 +872,14 @@ public abstract class BaseTestWorkbook {
         }
     }
 
+    // these 2 values are overridden in TestHSSFWorkbook
+    protected int getDrawingSizeForCreateDrawing1() {
+        return 1609725;
+    }
+    protected int getDrawingSizeForCreateDrawing2() {
+        return 1114425;
+    }
+
     // bug 51233 and 55075: correctly size image if added to a row with a custom height
     @Test
     void createDrawing() throws Exception {
@@ -906,13 +914,13 @@ public abstract class BaseTestWorkbook {
             assertEquals(0, anchor.getRow1());
             assertEquals(0, anchor.getRow2());
             assertEquals(0, anchor.getDy1());
-            assertEquals(1609725, anchor.getDy2()); //HSSF: 225
+            assertEquals(getDrawingSizeForCreateDrawing1(), anchor.getDy2());
 
             // Check drawing width
             assertEquals(0, anchor.getCol1());
             assertEquals(0, anchor.getCol2());
             assertEquals(0, anchor.getDx1());
-            assertEquals(1114425, anchor.getDx2()); //HSSF: 171
+            assertEquals(getDrawingSizeForCreateDrawing2(), anchor.getDx2());
         }
     }
 

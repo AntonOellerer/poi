@@ -973,16 +973,17 @@ class TestDataFormatter {
     }
 
     @Test
-    void testBug62839() {
-        Workbook wb = new HSSFWorkbook();
-        Sheet sheet = wb.createSheet();
-        Row row = sheet.createRow(0);
-        Cell cell = row.createCell(0);
-        cell.setCellFormula("FLOOR(-123,10)");
-        DataFormatter df = new DataFormatter(Locale.GERMANY);
+    void testBug62839() throws IOException {
+        try (Workbook wb = new HSSFWorkbook()) {
+            Sheet sheet = wb.createSheet();
+            Row row = sheet.createRow(0);
+            Cell cell = row.createCell(0);
+            cell.setCellFormula("FLOOR(-123,10)");
+            DataFormatter df = new DataFormatter(Locale.GERMANY);
 
-        String value = df.formatCellValue(cell, wb.getCreationHelper().createFormulaEvaluator());
-        assertEquals("-130", value);
+            String value = df.formatCellValue(cell, wb.getCreationHelper().createFormulaEvaluator());
+            assertEquals("-130", value);
+        }
     }
 
     /**
@@ -1162,4 +1163,38 @@ class TestDataFormatter {
         return true;
     }
 
+    @Test
+    public void testFormatCellValue() throws IOException {
+        DataFormatter df = new DataFormatter();
+
+        assertEquals("", df.formatCellValue(null));
+
+        try (Workbook wb = new HSSFWorkbook()) {
+            Cell cell = wb.createSheet("test").createRow(0).createCell(0);
+            assertEquals("", df.formatCellValue(cell));
+
+            cell.setCellValue(123);
+            assertEquals("123", df.formatCellValue(cell));
+
+            /* This is flaky, likely because of timezone
+            cell.setCellValue(new Date(234092383));
+            assertEquals("25571.75107", df.formatCellValue(cell));*/
+
+            cell.setCellValue("abcdefgh");
+            assertEquals("abcdefgh", df.formatCellValue(cell));
+
+            cell.setCellValue(true);
+            assertEquals("TRUE", df.formatCellValue(cell));
+
+            CellStyle cellStyle = wb.createCellStyle();
+            cellStyle.setDataFormat((short)14);
+            cell.setCellStyle(cellStyle);
+            cell.setCellValue(new Date(234092383));
+            assertEquals("1/3/70", df.formatCellValue(cell));
+
+            /* This is flaky, likely because of timezone
+            cellStyle.setDataFormat((short)9999);
+            assertEquals("25571.751069247686", df.formatCellValue(cell));*/
+        }
+    }
 }

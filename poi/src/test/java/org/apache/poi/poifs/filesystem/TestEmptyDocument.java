@@ -82,7 +82,7 @@ final class TestEmptyDocument {
             DirectoryEntry dir = fs.getRoot();
             emptyDoc.handle(dir);
 
-            UnsynchronizedByteArrayOutputStream out = new UnsynchronizedByteArrayOutputStream();
+            UnsynchronizedByteArrayOutputStream out = UnsynchronizedByteArrayOutputStream.builder().get();
             fs.writeFilesystem(out);
             assertDoesNotThrow(() -> new POIFSFileSystem(out.toInputStream()));
         }
@@ -92,7 +92,7 @@ final class TestEmptyDocument {
     void testEmptyDocumentBug11744() throws Exception {
         byte[] testData = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
 
-        UnsynchronizedByteArrayOutputStream out = new UnsynchronizedByteArrayOutputStream();
+        UnsynchronizedByteArrayOutputStream out = UnsynchronizedByteArrayOutputStream.builder().get();
         try (POIFSFileSystem fs = new POIFSFileSystem()) {
             fs.createDocument(new ByteArrayInputStream(new byte[0]), "Empty");
             fs.createDocument(new ByteArrayInputStream(testData), "NotEmpty");
@@ -101,13 +101,13 @@ final class TestEmptyDocument {
 
         // This line caused the error.
         try (POIFSFileSystem fs = new POIFSFileSystem(out.toInputStream())) {
-            DocumentEntry entry = (DocumentEntry) fs.getRoot().getEntry("Empty");
+            DocumentEntry entry = (DocumentEntry) fs.getRoot().getEntryCaseInsensitive("Empty");
             assertEquals(0, entry.getSize(), "Expected zero size");
             byte[] actualReadbackData;
             actualReadbackData = IOUtils.toByteArray(new DocumentInputStream(entry));
             assertEquals(0, actualReadbackData.length, "Expected zero read from stream");
 
-            entry = (DocumentEntry) fs.getRoot().getEntry("NotEmpty");
+            entry = (DocumentEntry) fs.getRoot().getEntryCaseInsensitive("NotEmpty");
             actualReadbackData = IOUtils.toByteArray(new DocumentInputStream(entry));
             assertEquals(testData.length, entry.getSize(), "Expected size was wrong");
             assertArrayEquals(testData, actualReadbackData, "Expected same data read from stream");

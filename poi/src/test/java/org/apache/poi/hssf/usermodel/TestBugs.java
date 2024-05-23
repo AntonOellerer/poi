@@ -1175,9 +1175,9 @@ final class TestBugs extends BaseTestBugzillaIssues {
     @Test
     void bug32191() throws IOException {
         try (HSSFWorkbook wb = openSampleWorkbook("27394.xls");
-             UnsynchronizedByteArrayOutputStream out1 = new UnsynchronizedByteArrayOutputStream();
-             UnsynchronizedByteArrayOutputStream out2 = new UnsynchronizedByteArrayOutputStream();
-             UnsynchronizedByteArrayOutputStream out3 = new UnsynchronizedByteArrayOutputStream()) {
+             UnsynchronizedByteArrayOutputStream out1 = UnsynchronizedByteArrayOutputStream.builder().get();
+             UnsynchronizedByteArrayOutputStream out2 = UnsynchronizedByteArrayOutputStream.builder().get();
+             UnsynchronizedByteArrayOutputStream out3 = UnsynchronizedByteArrayOutputStream.builder().get()) {
             wb.write(out1);
             wb.write(out2);
             wb.write(out3);
@@ -1541,9 +1541,9 @@ final class TestBugs extends BaseTestBugzillaIssues {
             // Write out and read back
             try (HSSFWorkbook wb2 = writeOutAndReadBack(wb1)) {
                 // Re-check
-                assertEquals("Testing", wb2.getCellStyleAt((short) 21).getUserStyleName());
-                assertEquals("Testing 2", wb2.getCellStyleAt((short) 22).getUserStyleName());
-                assertEquals("Testing 3", wb2.getCellStyleAt((short) 23).getUserStyleName());
+                assertEquals("Testing", wb2.getCellStyleAt(21).getUserStyleName());
+                assertEquals("Testing 2", wb2.getCellStyleAt(22).getUserStyleName());
+                assertEquals("Testing 3", wb2.getCellStyleAt(23).getUserStyleName());
             }
         }
     }
@@ -2331,7 +2331,7 @@ final class TestBugs extends BaseTestBugzillaIssues {
             }
 
             // Convert BufferedImage to byte[]
-            UnsynchronizedByteArrayOutputStream imageBAOS = new UnsynchronizedByteArrayOutputStream();
+            UnsynchronizedByteArrayOutputStream imageBAOS = UnsynchronizedByteArrayOutputStream.builder().get();
             ImageIO.write(bimage, "jpeg", imageBAOS);
             imageBAOS.flush();
             byte[] imageBytes = imageBAOS.toByteArray();
@@ -2451,7 +2451,7 @@ final class TestBugs extends BaseTestBugzillaIssues {
         try (POIFSFileSystem poifs = new POIFSFileSystem(HSSFTestDataSamples.openSampleFileStream("61300.xls"))) {
 
             DocumentEntry entry =
-                    (DocumentEntry) poifs.getRoot().getEntry(SummaryInformation.DEFAULT_STREAM_NAME);
+                    (DocumentEntry) poifs.getRoot().getEntryCaseInsensitive(SummaryInformation.DEFAULT_STREAM_NAME);
 
             RuntimeException ex = assertThrows(
                 RuntimeException.class,
@@ -2607,6 +2607,40 @@ final class TestBugs extends BaseTestBugzillaIssues {
     void test52447() throws IOException {
         try (Workbook wb = openSampleWorkbook("52447.xls")) {
             assertNotNull(wb);
+        }
+    }
+
+    @Test
+    void test66319() throws IOException {
+        try (
+                HSSFWorkbook workbook = openSampleWorkbook("bug66319.xls");
+                UnsynchronizedByteArrayOutputStream bos = UnsynchronizedByteArrayOutputStream.builder().get()
+        ) {
+            for (Sheet sheet : workbook) {
+                for (Row row : sheet) {
+                    for (Cell cell : row) {
+                        cell.getCellComment();
+                    }
+                }
+            }
+            workbook.write(bos);
+        }
+    }
+
+    @Test
+    void test66319WithRemove() throws IOException {
+        try (
+                HSSFWorkbook workbook = openSampleWorkbook("bug66319.xls");
+                UnsynchronizedByteArrayOutputStream bos = UnsynchronizedByteArrayOutputStream.builder().get()
+        ) {
+            for (Sheet sheet : workbook) {
+                for (Row row : sheet) {
+                    for (Cell cell : row) {
+                        cell.removeCellComment();
+                    }
+                }
+            }
+            workbook.write(bos);
         }
     }
 }

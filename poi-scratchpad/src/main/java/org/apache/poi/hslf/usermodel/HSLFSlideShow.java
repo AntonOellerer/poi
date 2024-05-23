@@ -22,10 +22,10 @@ import static org.apache.logging.log4j.util.Unbox.box;
 import java.awt.Dimension;
 import java.io.Closeable;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -66,6 +66,7 @@ import org.apache.poi.sl.usermodel.SlideShow;
 import org.apache.poi.util.GenericRecordUtil;
 import org.apache.poi.util.IOUtils;
 import org.apache.poi.util.Internal;
+import org.apache.poi.util.ThreadLocalUtil;
 import org.apache.poi.util.Units;
 
 /**
@@ -92,6 +93,10 @@ public final class HSLFSlideShow extends POIDocument implements SlideShow<HSLFSh
         INIT, LOADED
     }
     private static final ThreadLocal<LoadSavePhase> loadSavePhase = new ThreadLocal<>();
+    static {
+        // allow to clear all thread-locals via ThreadLocalUtil
+        ThreadLocalUtil.registerCleaner(loadSavePhase::remove);
+    }
 
     // What we're based on
     private final HSLFSlideShowImpl _hslfSlideShow;
@@ -872,7 +877,7 @@ public final class HSLFSlideShow extends POIDocument implements SlideShow<HSLFSh
             throw new IllegalArgumentException("Unsupported picture format: " + format);
         }
         byte[] data = IOUtils.safelyAllocate(pict.length(), MAX_RECORD_LENGTH);
-        try (FileInputStream is = new FileInputStream(pict)) {
+        try (InputStream is = Files.newInputStream(pict.toPath())) {
             IOUtils.readFully(is, data);
         }
         return addPicture(data, format);
@@ -1029,7 +1034,7 @@ public final class HSLFSlideShow extends POIDocument implements SlideShow<HSLFSh
     }
 
     /**
-     * Add a embedded object to this presentation
+     * Add an embedded object to this presentation
      *
      * @return 0-based index of the embedded object
      */
@@ -1042,7 +1047,7 @@ public final class HSLFSlideShow extends POIDocument implements SlideShow<HSLFSh
             Map<String,ClassID> olemap = getOleMap();
             ClassID classID = null;
             for (Map.Entry<String,ClassID> entry : olemap.entrySet()) {
-                if (root.hasEntry(entry.getKey())) {
+                if (root.hasEntryCaseInsensitive(entry.getKey())) {
                     classID = entry.getValue();
                     break;
                 }
@@ -1075,7 +1080,7 @@ public final class HSLFSlideShow extends POIDocument implements SlideShow<HSLFSh
         ExOleObjStg exOleObjStg = new ExOleObjStg();
         try {
             Ole10Native.createOleMarkerEntry(poiData);
-            UnsynchronizedByteArrayOutputStream bos = new UnsynchronizedByteArrayOutputStream();
+            UnsynchronizedByteArrayOutputStream bos = UnsynchronizedByteArrayOutputStream.builder().get();
             poiData.writeFilesystem(bos);
             exOleObjStg.setData(bos.toByteArray());
         } catch (IOException e) {

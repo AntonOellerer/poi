@@ -372,7 +372,7 @@ public class XSLFPictureShape extends XSLFSimpleShape
         }
 
         BufferedImage thmBI = renderer.getImage(dim);
-        try (UnsynchronizedByteArrayOutputStream bos = new UnsynchronizedByteArrayOutputStream(100000)) {
+        try (UnsynchronizedByteArrayOutputStream bos = UnsynchronizedByteArrayOutputStream.builder().setBufferSize(100000).get()) {
             // use extension instead of enum name, because of "jpeg"
             ImageIO.write(thmBI, pt.extension.substring(1), bos);
 
@@ -467,6 +467,29 @@ public class XSLFPictureShape extends XSLFSimpleShape
             }
         }
         return null;
+    }
+
+    private CTApplicationNonVisualDrawingProps getCTApplicationNonVisualDrawing() {
+        CTPictureNonVisual nvPicPr = getCTPictureNonVisual();
+        return nvPicPr == null ? null : nvPicPr.getNvPr();
+    }
+
+    /**
+     * @return boolean; true if the picture is an audio
+     * @since POI 5.2.4
+     */
+    public boolean isAudioFile() {
+        CTApplicationNonVisualDrawingProps nvPr = getCTApplicationNonVisualDrawing();
+        return nvPr != null && nvPr.isSetAudioFile();
+    }
+
+    /**
+     * @return the link ID for the audio file
+     * @since POI 5.2.4
+     */
+    public String getAudioFileLink() {
+        CTApplicationNonVisualDrawingProps nvPr = getCTApplicationNonVisualDrawing();
+        return nvPr != null && nvPr.isSetAudioFile() ? nvPr.getAudioFile().getLink() : null;
     }
 
     private CTPictureNonVisual getCTPictureNonVisual() {

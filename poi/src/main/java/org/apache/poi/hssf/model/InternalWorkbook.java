@@ -87,7 +87,7 @@ public final class InternalWorkbook {
     /**
      * Normally, the Workbook will be in a POIFS Stream called
      *  "Workbook". However, some weird XLS generators use "WORKBOOK"
-     *  or "BOOK".
+     *  or "BOOK". This includes common case sensitive variations.
      */
     public static final List<String> WORKBOOK_DIR_ENTRY_NAMES = Collections.unmodifiableList(
             Arrays.asList(
@@ -96,6 +96,19 @@ public final class InternalWorkbook {
                     "BOOK",     // Typically odd Crystal Reports exports
                     "WorkBook"  // Another third party program special
             )
+    );
+
+    /**
+     *     Crystal exports may use this for a regular .xls file. This
+     *     needs to be distinguished case sensitively from {@link #OLD_WORKBOOK_DIR_ENTRY_NAME}.
+     */
+    public static final String BOOK = "BOOK";
+
+    public static final String WORKBOOK = "WORKBOOK";
+
+    public static final List<String> WORKBOOK_DIR_ENTRY_NAMES_CASE_INSENSITIVE =
+            Collections.unmodifiableList(
+                    Arrays.asList(WORKBOOK, BOOK)
     );
 
     /**
@@ -453,7 +466,11 @@ public final class InternalWorkbook {
             "There are only " + numfonts + " font records, but you asked for index " + idx);
         }
 
-        return ( FontRecord ) records.get((records.getFontpos() - (numfonts - 1)) + index);
+        Record record = records.get((records.getFontpos() - (numfonts - 1)) + index);
+        if (!(record instanceof FontRecord)) {
+            throw new IllegalStateException("Did not have the expected record-type FontRecord: " + record.getClass());
+        }
+        return ( FontRecord ) record;
     }
 
     /**
@@ -830,7 +847,11 @@ public final class InternalWorkbook {
 
         xfptr += index;
 
-        return ( ExtendedFormatRecord ) records.get(xfptr);
+        Record record = records.get(xfptr);
+        if (!(record instanceof ExtendedFormatRecord)) {
+            throw new IllegalStateException("Did not have a ExtendedFormatRecord: " + record);
+        }
+        return (ExtendedFormatRecord) record;
     }
 
     /**
@@ -1050,13 +1071,16 @@ public final class InternalWorkbook {
      *
      * Include in it ant code that modifies the workbook record stream and affects its size.
      */
-    public void preSerialize(){
+    public void preSerialize() {
         // Ensure we have enough tab IDs
         // Can be a few short if new sheets were added
-        if(records.getTabpos() > 0) {
-            TabIdRecord tir = ( TabIdRecord ) records.get(records.getTabpos());
-            if(tir.getTabIdSize() < boundsheets.size()) {
-                fixTabIdRecord();
+        if (records.getTabpos() > 0) {
+            Record rec = records.get(records.getTabpos());
+            if (rec instanceof TabIdRecord) {
+                TabIdRecord tir = ( TabIdRecord ) rec;
+                if(tir.getTabIdSize() < boundsheets.size()) {
+                    fixTabIdRecord();
+                }
             }
         }
     }
@@ -1715,7 +1739,7 @@ public final class InternalWorkbook {
      */
     public int createFormat(String formatString) {
 
-        maxformatid = maxformatid >= 0xa4 ? maxformatid + 1 : 0xa4; //Starting value from M$ empircal study.
+        maxformatid = maxformatid >= 0xa4 ? maxformatid + 1 : 0xa4; //Starting value from M$ empirical  study.
         FormatRecord rec = new FormatRecord(maxformatid, formatString);
 
         int pos = 0;
@@ -2037,7 +2061,7 @@ public final class InternalWorkbook {
     }
 
     /**
-     * protect a workbook with a password (not encypted, just sets writeprotect
+     * protect a workbook with a password (not encrypted, just sets writeprotect
      * flags and the password.
      *
      * @param password the password
@@ -2076,7 +2100,7 @@ public final class InternalWorkbook {
      *
      * @param name the  name of an external function, typically a name of a UDF
      * @param sheetRefIndex the sheet ref index, or -1 if not known
-     * @param udf  locator of user-defiend functions to resolve names of VBA and Add-In functions
+     * @param udf  locator of user-defined functions to resolve names of VBA and Add-In functions
      * @return the external name or null
      */
     public NameXPtg getNameXPtg(String name, int sheetRefIndex, UDFFinder udf) {

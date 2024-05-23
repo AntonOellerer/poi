@@ -64,7 +64,7 @@ public class Section {
      * established when the section's size is calculated and can be reused
      * later. If the array is empty, the section was modified and the bytes need to be regenerated.
      */
-    private final UnsynchronizedByteArrayOutputStream sectionBytes = new UnsynchronizedByteArrayOutputStream();
+    private final UnsynchronizedByteArrayOutputStream sectionBytes = UnsynchronizedByteArrayOutputStream.builder().get();
 
     /**
      * The offset of the section in the stream.
@@ -131,7 +131,7 @@ public class Section {
          */
         int offFix = (int)LittleEndian.getUInt(src, offset + ClassID.LENGTH);
 
-        // some input files have a invalid (padded?) offset, which need to be fixed
+        // some input files have an invalid (padded?) offset, which need to be fixed
         // search for beginning of size field
         if (src[offFix] == 0) {
             for (int i=0; i<3 && src[offFix] == 0; i++,offFix++);
@@ -733,7 +733,7 @@ public class Section {
         }
 
         final int[][] offsets = new int[properties.size()][2];
-        try (UnsynchronizedByteArrayOutputStream bos = new UnsynchronizedByteArrayOutputStream();
+        try (UnsynchronizedByteArrayOutputStream bos = UnsynchronizedByteArrayOutputStream.builder().get();
             LittleEndianOutputStream leos = new LittleEndianOutputStream(bos)) {
 
             /* Write the section's length - dummy value, fixed later */

@@ -59,7 +59,7 @@ class TestXWPFBugs {
         //started failing after uptake of commons-compress 1.21
         assertThrows(IOException.class, () -> {
             try (InputStream fis = samples.openResourceAsStream("truncated62886.docx");
-                OPCPackage opc = OPCPackage.open(fis)) {
+                 OPCPackage opc = OPCPackage.open(fis)) {
                 assertNotNull(opc);
                 //XWPFWordExtractor ext = new XWPFWordExtractor(opc)) {
                 //assertNotNull(ext.getText());
@@ -176,8 +176,8 @@ class TestXWPFBugs {
             PackagePart part = document.getPackage().getPart(partName);
             assertNotNull(part);
             try (
-                    InputStream partStream = part.getInputStream();
-                    POIFSFileSystem poifs = new POIFSFileSystem(partStream)
+                InputStream partStream = part.getInputStream();
+                POIFSFileSystem poifs = new POIFSFileSystem(partStream)
             ) {
                 Ole10Native ole = Ole10Native.createFromEmbeddedOleObject(poifs);
                 String fn = "C:\\Users\\ross\\AppData\\Local\\Microsoft\\Windows\\INetCache\\Content.Word\\約翰的測試文件\uD83D\uDD96.msg";

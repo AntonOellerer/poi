@@ -25,13 +25,13 @@ import static org.apache.poi.openxml4j.opc.PackagingURIHelper.RELATIONSHIP_PART_
 import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -212,7 +212,7 @@ public abstract class OPCPackage implements RelationshipSource, Closeable {
            // pack.originalPackagePath = file.getAbsolutePath();
            return pack;
        } catch (InvalidFormatException | RuntimeException e) {
-           // use revert() to free resources when the packgae is opened read-only
+           // use revert() to free resources when the package is opened read-only
            pack.revert();
 
            throw e;
@@ -307,7 +307,7 @@ public abstract class OPCPackage implements RelationshipSource, Closeable {
      * of native methods
      *
      * @param in
-     *            The InputStream to read the package from
+     *            The InputStream to read the package from. The stream is closed.
      * @return A PackageBase object
      *
      * @throws InvalidFormatException
@@ -317,6 +317,38 @@ public abstract class OPCPackage implements RelationshipSource, Closeable {
     public static OPCPackage open(InputStream in) throws InvalidFormatException,
             IOException {
         OPCPackage pack = new ZipPackage(in, PackageAccess.READ_WRITE);
+        try {
+            if (pack.partList == null) {
+                pack.getParts();
+            }
+        } catch (InvalidFormatException | RuntimeException e) {
+            IOUtils.closeQuietly(pack);
+            throw e;
+        }
+        return pack;
+    }
+
+    /**
+     * Open a package.
+     *
+     * Note - uses quite a bit more memory than {@link #open(String)}, which
+     * doesn't need to hold the whole zip file in memory, and can take advantage
+     * of native methods
+     *
+     * @param in
+     *            The InputStream to read the package from.
+     * @param closeStream
+     *            Whether to close the input stream.
+     * @return A PackageBase object
+     *
+     * @throws InvalidFormatException
+     *              Throws if the specified file exist and is not valid.
+     * @throws IOException If reading the stream fails
+     * @since POI 5.2.5
+     */
+    public static OPCPackage open(InputStream in, boolean closeStream) throws InvalidFormatException,
+            IOException {
+        OPCPackage pack = new ZipPackage(in, PackageAccess.READ_WRITE, closeStream);
         try {
             if (pack.partList == null) {
                 pack.getParts();
@@ -495,7 +527,7 @@ public abstract class OPCPackage implements RelationshipSource, Closeable {
     /**
      * Add a thumbnail to the package. This method is provided to make easier
      * the addition of a thumbnail in a package. You can do the same work by
-     * using the traditionnal relationship and part mechanism.
+     * using the traditional relationship and part mechanism.
      *
      * @param path The full path to the image file.
      */
@@ -506,14 +538,14 @@ public abstract class OPCPackage implements RelationshipSource, Closeable {
         }
         String name = path.substring(path.lastIndexOf(File.separatorChar) + 1);
 
-        try (FileInputStream is = new FileInputStream(path)) {
+        try (InputStream is = Files.newInputStream(Paths.get(path))) {
             addThumbnail(name, is);
         }
     }
     /**
      * Add a thumbnail to the package. This method is provided to make easier
      * the addition of a thumbnail in a package. You can do the same work by
-     * using the traditionnal relationship and part mechanism.
+     * using the traditional relationship and part mechanism.
      *
      * @param filename The full path to the image file.
      * @param data the image data
@@ -940,7 +972,7 @@ public abstract class OPCPackage implements RelationshipSource, Closeable {
             throw new IllegalArgumentException("part");
         }
 
-        if (partList.containsKey(part._partName)) {
+        if (hasPackagePart(part)) {
             if (!partList.get(part._partName).isDeleted()) {
                 throw new InvalidOperationException(
                         "A part with the name '"
@@ -950,12 +982,16 @@ public abstract class OPCPackage implements RelationshipSource, Closeable {
             // If the specified partis flagged as deleted, we make it
             // available
             part.setDeleted(false);
-            // and delete the old part to replace it thereafeter
+            // and delete the old part to replace it thereafter
             this.partList.remove(part._partName);
         }
         this.partList.put(part._partName, part);
         this.isDirty = true;
         return part;
+    }
+
+    protected boolean hasPackagePart(PackagePart part) {
+        return partList.containsKey(part._partName);
     }
 
     /**
@@ -989,7 +1025,6 @@ public abstract class OPCPackage implements RelationshipSource, Closeable {
         if (this.partList.containsKey(partName)) {
             this.partList.get(partName).setDeleted(true);
             this.removePartImpl(partName);
-            this.partList.remove(partName);
         } else {
             this.removePartImpl(partName);
         }
@@ -1479,7 +1514,7 @@ public abstract class OPCPackage implements RelationshipSource, Closeable {
         }
 
         // Do the save
-        try (FileOutputStream fos = new FileOutputStream(targetFile)) {
+        try (OutputStream fos = Files.newOutputStream(targetFile.toPath())) {
             this.save(fos);
         }
     }
@@ -1515,8 +1550,16 @@ public abstract class OPCPackage implements RelationshipSource, Closeable {
      *
      * @param partName
      *            The URI of the part to delete.
+     * @throws IllegalArgumentException if the partName is null.
+     * @throws InvalidOperationException if the package is in read-only mode.
      */
-    protected abstract void removePartImpl(PackagePartName partName);
+    protected void removePartImpl(PackagePartName partName) {
+        if (partName == null) {
+            throw new IllegalArgumentException("partName cannot be null");
+        }
+        throwExceptionIfReadOnly();
+        this.partList.remove(partName);
+    }
 
     /**
      * Flush the package but not save.
@@ -1554,7 +1597,7 @@ public abstract class OPCPackage implements RelationshipSource, Closeable {
 
     /**
      * Replace a content type in this package.<p>
-     * A typical scneario to call this method is to rename a template file to the main format, e.g.
+     * A typical scenario to call this method is to rename a template file to the main format, e.g.
      * <ul>
      *     <li>".dotx" to ".docx"</li>
      *     <li>".dotm" to ".docm"</li>

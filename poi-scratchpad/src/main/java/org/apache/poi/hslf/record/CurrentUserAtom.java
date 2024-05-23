@@ -35,6 +35,7 @@ import org.apache.poi.hslf.exceptions.CorruptPowerPointFileException;
 import org.apache.poi.hslf.exceptions.OldPowerPointFormatException;
 import org.apache.poi.poifs.filesystem.DirectoryNode;
 import org.apache.poi.poifs.filesystem.DocumentEntry;
+import org.apache.poi.poifs.filesystem.Entry;
 import org.apache.poi.poifs.filesystem.POIFSFileSystem;
 import org.apache.poi.util.IOUtils;
 import org.apache.poi.util.LittleEndian;
@@ -120,8 +121,11 @@ public class CurrentUserAtom {
      */
     public CurrentUserAtom(DirectoryNode dir) throws IOException {
         // Decide how big it is
-        DocumentEntry docProps =
-            (DocumentEntry)dir.getEntry("Current User");
+        final Entry entry = dir.getEntry("Current User");
+        if (!(entry instanceof DocumentEntry)) {
+            throw new IllegalArgumentException("Had unexpected type of entry for name: Current User: " + entry.getClass());
+        }
+        DocumentEntry docProps = (DocumentEntry) entry;
 
         // If it's clearly junk, bail out
         if(docProps.getSize() > 131072) {
@@ -136,7 +140,7 @@ public class CurrentUserAtom {
         // See how long it is. If it's under 28 bytes long, we can't
         //  read it
         if(_contents.length < 28) {
-            boolean isPP95 = dir.hasEntry(PP95_DOCUMENT);
+            boolean isPP95 = dir.hasEntryCaseInsensitive(PP95_DOCUMENT);
             // PPT95 has 4 byte size, then data
             if (!isPP95 && _contents.length >= 4) {
                 int size = LittleEndian.getInt(_contents);
@@ -264,7 +268,7 @@ public class CurrentUserAtom {
      */
     public void writeToFS(POIFSFileSystem fs) throws IOException {
         // Grab contents
-        try (UnsynchronizedByteArrayOutputStream baos = new UnsynchronizedByteArrayOutputStream()) {
+        try (UnsynchronizedByteArrayOutputStream baos = UnsynchronizedByteArrayOutputStream.builder().get()) {
             writeOut(baos);
             try (InputStream is = baos.toInputStream()) {
                 // Write out

@@ -51,7 +51,6 @@ public class SXSSFSheet implements Sheet, OoxmlSheetExtensions {
     protected SheetDataWriter _writer;
     private int _randomAccessWindowSize = SXSSFWorkbook.DEFAULT_WINDOW_SIZE;
     protected AutoSizeColumnTracker _autoSizeColumnTracker;
-    private int outlineLevelRow;
     private int lastFlushedRowNumber = -1;
     private boolean allFlushed;
     private int leftMostColumn = SpreadsheetVersion.EXCEL2007.getLastColumnIndex();
@@ -62,7 +61,19 @@ public class SXSSFSheet implements Sheet, OoxmlSheetExtensions {
         _sh = xSheet;
         calculateLeftAndRightMostColumns(xSheet);
         setRandomAccessWindowSize(randomAccessWindowSize);
-        _autoSizeColumnTracker = new AutoSizeColumnTracker(this);
+        try {
+            _autoSizeColumnTracker = new AutoSizeColumnTracker(this);
+        } catch (UnsatisfiedLinkError | NoClassDefFoundError | InternalError |
+                 // thrown when no fonts are available in the workbook
+                 IndexOutOfBoundsException e) {
+            // only handle special NoClassDefFound
+            if (!e.getMessage().contains("X11FontManager")) {
+                throw e;
+            }
+            LOG.atWarn()
+                    .withThrowable(e)
+                    .log("Failed to create AutoSizeColumnTracker, possibly due to fonts not being installed in your OS");
+        }
     }
 
     private void calculateLeftAndRightMostColumns(XSSFSheet xssfSheet) {
@@ -93,8 +104,24 @@ public class SXSSFSheet implements Sheet, OoxmlSheetExtensions {
         setRandomAccessWindowSize(_workbook.getRandomAccessWindowSize());
         try {
             _autoSizeColumnTracker = new AutoSizeColumnTracker(this);
-        } catch (Exception e) {
-            LOG.atWarn().log("Failed to create AutoSizeColumnTracker, possibly due to fonts not being installed in your OS", e);
+        } catch (UnsatisfiedLinkError | NoClassDefFoundError | InternalError |
+                 // thrown when no fonts are available in the workbook
+                 IndexOutOfBoundsException e) {
+            // only handle special NoClassDefFound
+            if (!e.getMessage().contains("X11FontManager")) {
+                // close temporary resources when throwing exception in the constructor
+                _writer.close();
+
+                throw e;
+            }
+            LOG.atWarn()
+                    .withThrowable(e)
+                    .log("Failed to create AutoSizeColumnTracker, possibly due to fonts not being installed in your OS");
+        } catch (Throwable e) {
+            // close temporary resources when throwing exception in the constructor
+            _writer.close();
+
+            throw e;
         }
     }
 
@@ -139,7 +166,7 @@ public class SXSSFSheet implements Sheet, OoxmlSheetExtensions {
                             "in the range [0," + _writer.getLastFlushedRow() + "] that is already written to disk.");
         }
 
-        // attempt to overwrite a existing row in the input template
+        // attempt to overwrite an existing row in the input template
         if(_sh.getPhysicalNumberOfRows() > 0 && rownum <= _sh.getLastRowNum() ) {
             throw new IllegalArgumentException(
                     "Attempting to write a row["+rownum+"] " +
@@ -1142,7 +1169,7 @@ public class SXSSFSheet implements Sheet, OoxmlSheetExtensions {
      * Breaks occur above the specified row and left of the specified column inclusive.
      *
      * For example, {@code sheet.setColumnBreak(2);} breaks the sheet into two parts
-     * with columns A,B,C in the first and D,E,... in the second. Simuilar, {@code sheet.setRowBreak(2);}
+     * with columns A,B,C in the first and D,E,... in the second. Similar, {@code sheet.setRowBreak(2);}
      * breaks the sheet into two parts with first three rows (rownum=1...3) in the first part
      * and rows starting with rownum=4 in the second.
      *
@@ -1237,11 +1264,11 @@ public class SXSSFSheet implements Sheet, OoxmlSheetExtensions {
      */
     @Override
     public void groupColumn(int fromColumn, int toColumn) {
-        _sh.groupColumn(fromColumn,toColumn);
+        _sh.groupColumn(fromColumn, toColumn);
     }
 
     /**
-     * Ungroup a range of columns that were previously groupped
+     * Ungroup a range of columns that were previously grouped
      *
      * @param fromColumn   start column (0-based)
      * @param toColumn     end column (0-based)
@@ -1290,16 +1317,14 @@ public class SXSSFSheet implements Sheet, OoxmlSheetExtensions {
      */
     @Override
     public void groupRow(int fromRow, int toRow) {
+        int maxLevelRow = -1;
         for(SXSSFRow row : _rows.subMap(fromRow, toRow + 1).values()){
-            int level = row.getOutlineLevel() + 1;
+            final int level = row.getOutlineLevel() + 1;
             row.setOutlineLevel(level);
-
-            if(level > outlineLevelRow) {
-                outlineLevelRow = level;
-            }
+            maxLevelRow = Math.max(maxLevelRow, level);
         }
 
-        setWorksheetOutlineLevelRow();
+        setWorksheetOutlineLevelRowIfNecessary((short) Math.min(Short.MAX_VALUE, maxLevelRow));
     }
 
     /**
@@ -1319,24 +1344,21 @@ public class SXSSFSheet implements Sheet, OoxmlSheetExtensions {
     public void setRowOutlineLevel(int rownum, int level) {
         SXSSFRow row = _rows.get(rownum);
         row.setOutlineLevel(level);
-        if(level > 0 && level > outlineLevelRow) {
-            outlineLevelRow = level;
-            setWorksheetOutlineLevelRow();
-        }
+        setWorksheetOutlineLevelRowIfNecessary((short) Math.min(Short.MAX_VALUE, level));
     }
 
-    private void setWorksheetOutlineLevelRow() {
+    private void setWorksheetOutlineLevelRowIfNecessary(final short levelRow) {
         CTWorksheet ct = _sh.getCTWorksheet();
         CTSheetFormatPr pr = ct.isSetSheetFormatPr() ?
                 ct.getSheetFormatPr() :
                 ct.addNewSheetFormatPr();
-        if(outlineLevelRow > 0) {
-            pr.setOutlineLevelRow((short)outlineLevelRow);
+        if(levelRow > _sh.getSheetFormatPrOutlineLevelRow()) {
+            pr.setOutlineLevelRow(levelRow);
         }
     }
 
     /**
-     * Ungroup a range of rows that were previously groupped
+     * Ungroup a range of rows that were previously grouped
      *
      * @param fromRow   start row (0-based)
      * @param toRow     end row (0-based)
@@ -1351,7 +1373,7 @@ public class SXSSFSheet implements Sheet, OoxmlSheetExtensions {
      *
      * <i>Not implemented for expanding (i.e. collapse == false)</i>
      *
-     * @param row   start row of a groupped range of rows (0-based)
+     * @param row   start row of a grouped range of rows (0-based)
      * @param collapse whether to expand/collapse the detail rows
      * @throws IllegalStateException if collapse is false as this is not implemented for SXSSF.
      */
@@ -2150,6 +2172,11 @@ public class SXSSFSheet implements Sheet, OoxmlSheetExtensions {
         pr.setTabColor(color);
     }
 
+    /**
+     * This method is not yet supported.
+     *
+     * @throws UnsupportedOperationException this method is not yet supported
+     */
     @NotImplemented
     @Override
     public void shiftColumns(int startColumn, int endColumn, int n){

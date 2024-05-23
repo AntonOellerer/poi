@@ -18,6 +18,7 @@
 package org.apache.poi.openxml4j.util;
 
 import java.io.*;
+import java.nio.file.Files;
 
 import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
 import org.apache.commons.io.input.UnsynchronizedByteArrayInputStream;
@@ -99,12 +100,12 @@ import org.apache.poi.util.TempFile;
             }
         } else if (tempFile != null) {
             try {
-                return new FileInputStream(tempFile);
+                return Files.newInputStream(tempFile.toPath());
             } catch (FileNotFoundException e) {
                 throw new IOException("temp file " + tempFile.getAbsolutePath() + " is missing");
             }
         } else if (data != null) {
-            return new UnsynchronizedByteArrayInputStream(data);
+            return UnsynchronizedByteArrayInputStream.builder().setByteArray(data).get();
         } else {
             throw new IOException("Cannot retrieve data from Zip Entry, probably because the Zip Entry was closed before the data was requested.");
         }

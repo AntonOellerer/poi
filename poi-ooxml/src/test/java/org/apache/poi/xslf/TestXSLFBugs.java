@@ -53,8 +53,10 @@ import org.apache.commons.io.output.NullPrintStream;
 import org.apache.poi.POIDataSamples;
 import org.apache.poi.common.usermodel.HyperlinkType;
 import org.apache.poi.extractor.ExtractorFactory;
+import org.apache.poi.ooxml.HyperlinkRelationship;
 import org.apache.poi.ooxml.POIXMLDocumentPart;
 import org.apache.poi.ooxml.POIXMLDocumentPart.RelationPart;
+import org.apache.poi.ooxml.ReferenceRelationship;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.openxml4j.opc.OPCPackage;
 import org.apache.poi.openxml4j.opc.PackagePartName;
@@ -384,23 +386,31 @@ class TestXSLFBugs {
 
             // Check the relations from this
             Collection<RelationPart> rels = slide.getRelationParts();
+            Collection<ReferenceRelationship> referenceRelationships = slide.getReferenceRelationships();
 
             // Should have 6 relations:
             //   1 external hyperlink (skipped from list)
             //   4 internal hyperlinks
             //   1 slide layout
-            assertEquals(5, rels.size());
+            assertEquals(1, rels.size());
+            assertEquals(5, referenceRelationships.size());
             int layouts = 0;
             int hyperlinks = 0;
+            int extHyperLinks = 0;
             for (RelationPart p : rels) {
-                if (p.getRelationship().getRelationshipType().equals(XSLFRelation.HYPERLINK.getRelation())) {
-                    hyperlinks++;
-                } else if (p.getDocumentPart() instanceof XSLFSlideLayout) {
+                if (p.getDocumentPart() instanceof XSLFSlideLayout) {
                     layouts++;
+                }
+            }
+            for (ReferenceRelationship ref : referenceRelationships) {
+                if (ref instanceof HyperlinkRelationship) {
+                    if (ref.isExternal()) extHyperLinks++;
+                    else hyperlinks++;
                 }
             }
             assertEquals(1, layouts);
             assertEquals(4, hyperlinks);
+            assertEquals(1, extHyperLinks);
 
             // Hyperlinks should all be to #_ftn1 or #ftnref1
             for (RelationPart p : rels) {
@@ -964,7 +974,7 @@ class TestXSLFBugs {
 
             final List<Object> strings = new ArrayList<>();
 
-            DummyGraphics2d dgfx = new DummyGraphics2d(new NullPrintStream()) {
+            DummyGraphics2d dgfx = new DummyGraphics2d(NullPrintStream.INSTANCE) {
                 @Override
                 public void drawString(AttributedCharacterIterator iterator, float x, float y) {
                     // For the test file, common sl draws textruns one by one and not mixed
@@ -1009,7 +1019,7 @@ class TestXSLFBugs {
                 { 79.58198774450841, 53.20887318960063, 109.13118501448272, 9.40935058567127 },
         };
 
-        DummyGraphics2d dgfx = new DummyGraphics2d(new NullPrintStream()) {
+        DummyGraphics2d dgfx = new DummyGraphics2d(NullPrintStream.INSTANCE) {
             int idx = 0;
             @Override
             public void clip(java.awt.Shape s) {
@@ -1065,7 +1075,7 @@ class TestXSLFBugs {
             assertNotNull(targetSlide);
             assertEquals(2, targetPresentation.getPictureData().size());
 
-            targetPresentation.write(NullOutputStream.NULL_OUTPUT_STREAM);
+            targetPresentation.write(NullOutputStream.INSTANCE);
         }
     }
 
@@ -1143,7 +1153,7 @@ class TestXSLFBugs {
 
         final ArrayList<LinearGradientPaint> linearGradients = new ArrayList<>();
         final ArrayList<RadialGradientPaint> radialGradients = new ArrayList<>();
-        final DummyGraphics2d dgfx = new DummyGraphics2d(new NullPrintStream())
+        final DummyGraphics2d dgfx = new DummyGraphics2d(NullPrintStream.INSTANCE)
         {
             public void setPaint(final Paint paint) {
                 if (paint instanceof LinearGradientPaint) {

@@ -218,7 +218,7 @@ public final class TestPackage {
      */
     @Test
     void createPackageWithCoreDocument() throws IOException, InvalidFormatException, URISyntaxException, SAXException {
-        UnsynchronizedByteArrayOutputStream baos = new UnsynchronizedByteArrayOutputStream();
+        UnsynchronizedByteArrayOutputStream baos = UnsynchronizedByteArrayOutputStream.builder().get();
         try (OPCPackage pkg = OPCPackage.create(baos)) {
 
             // Add a core document
@@ -284,7 +284,7 @@ public final class TestPackage {
             assertEquals(1, rels.size());
             PackageRelationship rel = rels.getRelationship(0);
             assertNotNull(rel);
-            assertEquals("Sheet1!A1", rel.getTargetURI().getRawFragment());
+            assertEquals("#Sheet1!A1", rel.getTargetURI().toString());
 
             assertMSCompatibility(pkg);
         }
@@ -676,7 +676,7 @@ public final class TestPackage {
     @Test
     void zipBombCreateAndHandle()
     throws IOException, EncryptedDocumentException {
-        UnsynchronizedByteArrayOutputStream bos = new UnsynchronizedByteArrayOutputStream(2500000);
+        UnsynchronizedByteArrayOutputStream bos = UnsynchronizedByteArrayOutputStream.builder().setBufferSize(2500000).get();
 
         try (ZipFile zipFile = ZipHelper.openZipFile(getSampleFile("sample.xlsx"));
              ZipArchiveOutputStream append = new ZipArchiveOutputStream(bos)) {

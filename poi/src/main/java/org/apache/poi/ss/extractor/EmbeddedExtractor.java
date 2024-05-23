@@ -177,7 +177,7 @@ public class EmbeddedExtractor implements Iterable<EmbeddedExtractor> {
 
     protected EmbeddedData extract(DirectoryNode dn) throws IOException {
         assert(canExtract(dn));
-        try (UnsynchronizedByteArrayOutputStream bos = new UnsynchronizedByteArrayOutputStream(20000);
+        try (UnsynchronizedByteArrayOutputStream bos = UnsynchronizedByteArrayOutputStream.builder().setBufferSize(20000).get();
             POIFSFileSystem dest = new POIFSFileSystem()) {
             copyNodes(dn, dest.getRoot());
             // start with a reasonable big size
@@ -213,12 +213,12 @@ public class EmbeddedExtractor implements Iterable<EmbeddedExtractor> {
         @Override
         public boolean canExtract(DirectoryNode dn) {
             ClassID clsId = dn.getStorageClsid();
-            return (ClassIDPredefined.PDF.equals(clsId) || dn.hasEntry("CONTENTS"));
+            return (ClassIDPredefined.PDF.equals(clsId) || dn.hasEntryCaseInsensitive("CONTENTS"));
         }
 
         @Override
         public EmbeddedData extract(DirectoryNode dn) throws IOException {
-            try(UnsynchronizedByteArrayOutputStream bos = new UnsynchronizedByteArrayOutputStream();
+            try(UnsynchronizedByteArrayOutputStream bos = UnsynchronizedByteArrayOutputStream.builder().get();
                 InputStream is = dn.createDocumentInputStream("CONTENTS")) {
                 IOUtils.copy(is, bos);
                 return new EmbeddedData(dn.getName() + ".pdf", bos.toByteArray(), CONTENT_TYPE_PDF);
@@ -273,7 +273,7 @@ public class EmbeddedExtractor implements Iterable<EmbeddedExtractor> {
     static class OOXMLExtractor extends EmbeddedExtractor {
         @Override
         public boolean canExtract(DirectoryNode dn) {
-            return dn.hasEntry("package");
+            return dn.hasEntryCaseInsensitive("package");
         }
 
         @Override
@@ -312,14 +312,14 @@ public class EmbeddedExtractor implements Iterable<EmbeddedExtractor> {
             ClassIDPredefined clsId = ClassIDPredefined.lookup(dn.getStorageClsid());
             return (ClassIDPredefined.EXCEL_V7 == clsId
                 || ClassIDPredefined.EXCEL_V8 == clsId
-                || dn.hasEntry("Workbook") /*...*/);
+                || dn.hasEntryCaseInsensitive("Workbook") /*...*/);
         }
 
         protected boolean canExtractWord(DirectoryNode dn) {
             ClassIDPredefined clsId = ClassIDPredefined.lookup(dn.getStorageClsid());
             return (ClassIDPredefined.WORD_V7 == clsId
                 || ClassIDPredefined.WORD_V8 == clsId
-                || dn.hasEntry("WordDocument"));
+                || dn.hasEntryCaseInsensitive("WordDocument"));
         }
 
         @Override

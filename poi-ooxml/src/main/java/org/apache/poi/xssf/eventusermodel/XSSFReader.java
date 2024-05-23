@@ -68,7 +68,7 @@ public class XSSFReader {
             Collections.unmodifiableSet(new HashSet<>(
                     Arrays.asList(XSSFRelation.WORKSHEET.getRelation(),
                             XSSFRelation.CHARTSHEET.getRelation(),
-                            XSSFRelation.MACRO_SHEET_BIN.getRelation())
+                            XSSFRelation.MACRO_SHEET_XML.getRelation())
             ));
     private static final Logger LOGGER = LogManager.getLogger(XSSFReader.class);
 
@@ -300,6 +300,9 @@ public class XSSFReader {
          * @throws IOException if there is an I/O issue reading the data
          */
         protected SheetIterator(PackagePart wb) throws IOException, InvalidFormatException {
+            if (wb == null) {
+                throw new InvalidFormatException("Cannot create sheet-iterator with missing package part for workbook");
+            }
 
             /*
              * The order of sheets is defined by the order of CTSheet elements in workbook.xml
@@ -377,6 +380,10 @@ public class XSSFReader {
          */
         @Override
         public InputStream next() {
+            if (!sheetIterator.hasNext()) {
+                throw new IllegalStateException("Cannot get next from iterator");
+            }
+
             xssfSheetRef = sheetIterator.next();
 
             String sheetId = xssfSheetRef.getId();

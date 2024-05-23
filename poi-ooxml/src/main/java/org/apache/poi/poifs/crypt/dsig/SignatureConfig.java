@@ -125,12 +125,6 @@ public class SignatureConfig {
         Office2010SignatureFacet::new
     );
 
-
-    private final ThreadLocal<OPCPackage> opcPackage = new ThreadLocal<>();
-    private final ThreadLocal<XMLSignatureFactory> signatureFactory = new ThreadLocal<>();
-    private final ThreadLocal<KeyInfoFactory> keyInfoFactory = new ThreadLocal<>();
-    private final ThreadLocal<Provider> provider = new ThreadLocal<>();
-
     private List<SignatureFacet> signatureFacets = new ArrayList<>();
     private HashAlgorithm digestAlgo = HashAlgorithm.sha256;
     private Date executionTime = new Date();
@@ -261,7 +255,7 @@ public class SignatureConfig {
     private String commitmentType = "Created and approved this document";
 
     /**
-     * Swtich to enable/disable automatic CRL download - by default the download is with all https hostname
+     * Switch to enable/disable automatic CRL download - by default the download is with all https hostname
      * and certificate verifications disabled.
      *
      * @since POI 5.2.1
@@ -322,28 +316,6 @@ public class SignatureConfig {
      */
     public void setDigestAlgo(HashAlgorithm digestAlgo) {
         this.digestAlgo = digestAlgo;
-    }
-
-    /**
-     * @return the opc package to be used by this thread, stored as thread-local
-     *
-     * @deprecated in POI 5.0.0 - use {@link SignatureInfo#setOpcPackage(OPCPackage)} instead
-     */
-    @Deprecated
-    @Removal(version = "5.0.0")
-    public OPCPackage getOpcPackage() {
-        return opcPackage.get();
-    }
-
-    /**
-     * @param opcPackage the opc package to be handled by this thread, stored as thread-local
-     *
-     * @deprecated in POI 5.0.0 - use {@link SignatureInfo#setOpcPackage(OPCPackage)} instead
-     */
-    @Deprecated
-    @Removal(version = "5.0.0")
-    public void setOpcPackage(OPCPackage opcPackage) {
-        this.opcPackage.set(opcPackage);
     }
 
     /**
@@ -862,7 +834,7 @@ public class SignatureConfig {
     }
 
     /**
-     * @param xadesIssuerNameNoReverseOrder when true, the issuer DN instead of the issuer X500 prinicpal is used
+     * @param xadesIssuerNameNoReverseOrder when true, the issuer DN instead of the issuer X500 principal is used
      */
     public void setXadesIssuerNameNoReverseOrder(boolean xadesIssuerNameNoReverseOrder) {
         this.xadesIssuerNameNoReverseOrder = xadesIssuerNameNoReverseOrder;
@@ -1011,74 +983,6 @@ public class SignatureConfig {
         }
     }
 
-
-    /**
-     * @param signatureFactory the xml signature factory, saved as thread-local
-     *
-     * @deprecated in POI 5.0.0 - use {@link SignatureInfo#setSignatureFactory(XMLSignatureFactory)}
-     */
-    @Deprecated
-    @Removal(version = "5.0.0")
-    public void setSignatureFactory(XMLSignatureFactory signatureFactory) {
-        this.signatureFactory.set(signatureFactory);
-    }
-
-    /**
-     * @return the xml signature factory (thread-local)
-     *
-     * @deprecated in POI 5.0.0 - will be handled by SignatureInfo internally
-     */
-    @Deprecated
-    @Removal(version = "5.0.0")
-    public XMLSignatureFactory getSignatureFactory() {
-        return signatureFactory.get();
-    }
-
-    /**
-     * @param keyInfoFactory the key factory, saved as thread-local
-     *
-     * @deprecated in POI 5.0.0 - use {@link SignatureInfo#setKeyInfoFactory(KeyInfoFactory)}
-     */
-    @Deprecated
-    @Removal(version = "5.0.0")
-    public void setKeyInfoFactory(KeyInfoFactory keyInfoFactory) {
-        this.keyInfoFactory.set(keyInfoFactory);
-    }
-
-    /**
-     * @return the key factory (thread-local)
-     *
-     * @deprecated in POI 5.0.0 - will be handled by SignatureInfo internally
-     */
-    @Deprecated
-    @Removal(version = "5.0.0")
-    public KeyInfoFactory getKeyInfoFactory() {
-        return keyInfoFactory.get();
-    }
-
-    /**
-     * Helper method to set provider
-     * @param provider the provider
-     * @deprecated in POI 5.0.0 - use {@link SignatureInfo#setProvider(Provider)}
-     */
-    @Internal
-    @Deprecated
-    @Removal(version = "5.0.0")
-    public void setProvider(Provider provider) {
-        this.provider.set(provider);
-    }
-
-    /**
-     * @return the cached provider or null if not set before
-     *
-     * @deprecated in POI 5.0.0 - will be handled by SignatureInfo internally
-     */
-    @Deprecated
-    @Removal(version = "5.0.0")
-    public Provider getProvider() {
-        return provider.get();
-    }
-
     /**
      * Determine the possible classes for XMLSEC.
      * The order is
@@ -1100,7 +1004,7 @@ public class SignatureConfig {
 
 
     /**
-     * @return the cannonicalization method for XAdES-XL signing.
+     * @return the canonicalization method for XAdES-XL signing.
      * Defaults to {@code EXCLUSIVE}
      * @see <a href="http://docs.oracle.com/javase/7/docs/api/javax/xml/crypto/dsig/CanonicalizationMethod.html">javax.xml.crypto.dsig.CanonicalizationMethod</a>
      */
@@ -1109,7 +1013,7 @@ public class SignatureConfig {
     }
 
     /**
-     * @param xadesCanonicalizationMethod the cannonicalization method for XAdES-XL signing
+     * @param xadesCanonicalizationMethod the canonicalization method for XAdES-XL signing
      * @see <a href="http://docs.oracle.com/javase/7/docs/api/javax/xml/crypto/dsig/CanonicalizationMethod.html">javax.xml.crypto.dsig.CanonicalizationMethod</a>
      */
     public void setXadesCanonicalizationMethod(String xadesCanonicalizationMethod) {
