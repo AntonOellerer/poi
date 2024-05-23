@@ -60,6 +60,7 @@ import org.apache.poi.ooxml.POIXMLDocumentPart;
 import org.apache.poi.ooxml.POIXMLDocumentPart.RelationPart;
 import org.apache.poi.ooxml.POIXMLException;
 import org.apache.poi.ooxml.POIXMLProperties;
+import org.apache.poi.ooxml.ReferenceRelationship;
 import org.apache.poi.ooxml.util.DocumentHelper;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.openxml4j.exceptions.InvalidOperationException;
@@ -234,18 +235,18 @@ public final class TestXSSFBugs extends BaseTestBugzillaIssues {
             assertEquals(1, wb1.getNumberOfSheets());
             XSSFSheet sh = wb1.getSheetAt(0);
             XSSFDrawing drawing = sh.createDrawingPatriarch();
-            List<RelationPart> rels = drawing.getRelationParts();
-            assertEquals(1, rels.size());
-            assertEquals("Sheet1!A1", rels.get(0).getRelationship().getTargetURI().getFragment());
+            List<ReferenceRelationship> referenceRelationships = drawing.getReferenceRelationships();
+            assertEquals(1, referenceRelationships.size());
+            assertEquals("#Sheet1!A1", referenceRelationships.get(0).getUri().toString());
 
             // And again, just to be sure
             try (XSSFWorkbook wb2 = writeOutAndReadBack(wb1)) {
                 assertEquals(1, wb2.getNumberOfSheets());
                 sh = wb2.getSheetAt(0);
                 drawing = sh.createDrawingPatriarch();
-                rels = drawing.getRelationParts();
-                assertEquals(1, rels.size());
-                assertEquals("Sheet1!A1", rels.get(0).getRelationship().getTargetURI().getFragment());
+                referenceRelationships = drawing.getReferenceRelationships();
+                assertEquals(1, referenceRelationships.size());
+                assertEquals("#Sheet1!A1", referenceRelationships.get(0).getUri().toString());
             }
         }
     }
@@ -3460,13 +3461,13 @@ public final class TestXSSFBugs extends BaseTestBugzillaIssues {
 
             // Will be OOXML wrapped in OLE2, not directly SpreadSheet
             POIFSFileSystem fs = new POIFSFileSystem(data.getInputStream());
-            assertTrue(fs.getRoot().hasEntry(OOXML_PACKAGE));
-            assertFalse(fs.getRoot().hasEntry("Workbook"));
+            assertTrue(fs.getRoot().hasEntryCaseInsensitive(OOXML_PACKAGE));
+            assertFalse(fs.getRoot().hasEntryCaseInsensitive("Workbook"));
 
 
             // Can fetch Package to get OOXML
             DirectoryNode root = fs.getRoot();
-            DocumentEntry docEntry = (DocumentEntry) root.getEntry(OOXML_PACKAGE);
+            DocumentEntry docEntry = (DocumentEntry) root.getEntryCaseInsensitive(OOXML_PACKAGE);
             try (DocumentInputStream dis = new DocumentInputStream(docEntry);
                  OPCPackage pkg = OPCPackage.open(dis);
                  XSSFWorkbook wb = new XSSFWorkbook(pkg)) {

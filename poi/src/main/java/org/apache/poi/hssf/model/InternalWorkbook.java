@@ -87,7 +87,7 @@ public final class InternalWorkbook {
     /**
      * Normally, the Workbook will be in a POIFS Stream called
      *  "Workbook". However, some weird XLS generators use "WORKBOOK"
-     *  or "BOOK".
+     *  or "BOOK". This includes common case sensitive variations.
      */
     public static final List<String> WORKBOOK_DIR_ENTRY_NAMES = Collections.unmodifiableList(
             Arrays.asList(
@@ -96,6 +96,19 @@ public final class InternalWorkbook {
                     "BOOK",     // Typically odd Crystal Reports exports
                     "WorkBook"  // Another third party program special
             )
+    );
+
+    /**
+     *     Crystal exports may use this for a regular .xls file. This
+     *     needs to be distinguished case sensitively from {@link #OLD_WORKBOOK_DIR_ENTRY_NAME}.
+     */
+    public static final String BOOK = "BOOK";
+
+    public static final String WORKBOOK = "WORKBOOK";
+
+    public static final List<String> WORKBOOK_DIR_ENTRY_NAMES_CASE_INSENSITIVE =
+            Collections.unmodifiableList(
+                    Arrays.asList(WORKBOOK, BOOK)
     );
 
     /**
@@ -453,7 +466,11 @@ public final class InternalWorkbook {
             "There are only " + numfonts + " font records, but you asked for index " + idx);
         }
 
-        return ( FontRecord ) records.get((records.getFontpos() - (numfonts - 1)) + index);
+        Record record = records.get((records.getFontpos() - (numfonts - 1)) + index);
+        if (!(record instanceof FontRecord)) {
+            throw new IllegalStateException("Did not have the expected record-type FontRecord: " + record.getClass());
+        }
+        return ( FontRecord ) record;
     }
 
     /**
@@ -1054,13 +1071,16 @@ public final class InternalWorkbook {
      *
      * Include in it ant code that modifies the workbook record stream and affects its size.
      */
-    public void preSerialize(){
+    public void preSerialize() {
         // Ensure we have enough tab IDs
         // Can be a few short if new sheets were added
-        if(records.getTabpos() > 0) {
-            TabIdRecord tir = ( TabIdRecord ) records.get(records.getTabpos());
-            if(tir.getTabIdSize() < boundsheets.size()) {
-                fixTabIdRecord();
+        if (records.getTabpos() > 0) {
+            Record rec = records.get(records.getTabpos());
+            if (rec instanceof TabIdRecord) {
+                TabIdRecord tir = ( TabIdRecord ) rec;
+                if(tir.getTabIdSize() < boundsheets.size()) {
+                    fixTabIdRecord();
+                }
             }
         }
     }

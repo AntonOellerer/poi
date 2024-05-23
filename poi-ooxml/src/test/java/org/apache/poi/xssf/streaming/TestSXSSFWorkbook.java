@@ -33,6 +33,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.time.LocalDate;
 import java.util.Arrays;
 
@@ -351,6 +352,27 @@ public final class TestSXSSFWorkbook extends BaseTestXWorkbook {
                 SXSSFSheet sxSheet = (SXSSFSheet) sheet;
                 assertFalse(sxSheet.getSheetDataWriter().getTempFile().exists());
             }
+        }
+    }
+
+    @Test
+    void workbookTempFilesAreDisposedWhenClosingWorkbook() throws IOException {
+        SXSSFWorkbook wb = new SXSSFWorkbook();
+
+        // Closing / auto-closing the workbook should clean up the temp files
+        try {
+            populateData(wb);
+
+            for (int i = 0; i < wb.getNumberOfSheets(); i++) {
+                assertTrue(wb.getSheetAt(i).getSheetDataWriter().getTempFile().exists());
+            }
+            // Not calling SXSSFWorkbook#dispose since closing the workbook should clean up the temp files
+        } finally {
+            wb.close();
+        }
+
+        for (int i = 0; i < wb.getNumberOfSheets(); i++) {
+            assertFalse(wb.getSheetAt(i).getSheetDataWriter().getTempFile().exists());
         }
     }
 
@@ -725,4 +747,13 @@ public final class TestSXSSFWorkbook extends BaseTestXWorkbook {
         }
     }
 
+    @Test
+    void writeBrokenFile() throws IOException {
+        try (final Workbook wb = _testDataProvider.openSampleWorkbook("clusterfuzz-testcase-minimized-POIXSSFFuzzer-5185049589579776.xlsx")) {
+            try (OutputStream out = NullOutputStream.INSTANCE) {
+                assertThrows(IllegalArgumentException.class,
+                        () -> wb.write(out));
+            }
+        }
+    }
 }

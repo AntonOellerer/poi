@@ -25,13 +25,13 @@ import static org.apache.poi.openxml4j.opc.PackagingURIHelper.RELATIONSHIP_PART_
 import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -307,7 +307,7 @@ public abstract class OPCPackage implements RelationshipSource, Closeable {
      * of native methods
      *
      * @param in
-     *            The InputStream to read the package from
+     *            The InputStream to read the package from. The stream is closed.
      * @return A PackageBase object
      *
      * @throws InvalidFormatException
@@ -317,6 +317,38 @@ public abstract class OPCPackage implements RelationshipSource, Closeable {
     public static OPCPackage open(InputStream in) throws InvalidFormatException,
             IOException {
         OPCPackage pack = new ZipPackage(in, PackageAccess.READ_WRITE);
+        try {
+            if (pack.partList == null) {
+                pack.getParts();
+            }
+        } catch (InvalidFormatException | RuntimeException e) {
+            IOUtils.closeQuietly(pack);
+            throw e;
+        }
+        return pack;
+    }
+
+    /**
+     * Open a package.
+     *
+     * Note - uses quite a bit more memory than {@link #open(String)}, which
+     * doesn't need to hold the whole zip file in memory, and can take advantage
+     * of native methods
+     *
+     * @param in
+     *            The InputStream to read the package from.
+     * @param closeStream
+     *            Whether to close the input stream.
+     * @return A PackageBase object
+     *
+     * @throws InvalidFormatException
+     *              Throws if the specified file exist and is not valid.
+     * @throws IOException If reading the stream fails
+     * @since POI 5.2.5
+     */
+    public static OPCPackage open(InputStream in, boolean closeStream) throws InvalidFormatException,
+            IOException {
+        OPCPackage pack = new ZipPackage(in, PackageAccess.READ_WRITE, closeStream);
         try {
             if (pack.partList == null) {
                 pack.getParts();
@@ -506,7 +538,7 @@ public abstract class OPCPackage implements RelationshipSource, Closeable {
         }
         String name = path.substring(path.lastIndexOf(File.separatorChar) + 1);
 
-        try (FileInputStream is = new FileInputStream(path)) {
+        try (InputStream is = Files.newInputStream(Paths.get(path))) {
             addThumbnail(name, is);
         }
     }
@@ -993,7 +1025,6 @@ public abstract class OPCPackage implements RelationshipSource, Closeable {
         if (this.partList.containsKey(partName)) {
             this.partList.get(partName).setDeleted(true);
             this.removePartImpl(partName);
-            this.partList.remove(partName);
         } else {
             this.removePartImpl(partName);
         }
@@ -1483,7 +1514,7 @@ public abstract class OPCPackage implements RelationshipSource, Closeable {
         }
 
         // Do the save
-        try (FileOutputStream fos = new FileOutputStream(targetFile)) {
+        try (OutputStream fos = Files.newOutputStream(targetFile.toPath())) {
             this.save(fos);
         }
     }
@@ -1519,8 +1550,16 @@ public abstract class OPCPackage implements RelationshipSource, Closeable {
      *
      * @param partName
      *            The URI of the part to delete.
+     * @throws IllegalArgumentException if the partName is null.
+     * @throws InvalidOperationException if the package is in read-only mode.
      */
-    protected abstract void removePartImpl(PackagePartName partName);
+    protected void removePartImpl(PackagePartName partName) {
+        if (partName == null) {
+            throw new IllegalArgumentException("partName cannot be null");
+        }
+        throwExceptionIfReadOnly();
+        this.partList.remove(partName);
+    }
 
     /**
      * Flush the package but not save.

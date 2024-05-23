@@ -119,6 +119,25 @@ public class TestAllFiles {
         "spreadsheet/testEXCEL_3.xls",
         "spreadsheet/testEXCEL_4.xls",
         "poifs/unknown_properties.msg",
+        "publisher/clusterfuzz-testcase-minimized-POIHPBFFuzzer-4701121678278656.pub",
+        "hsmf/clusterfuzz-testcase-minimized-POIHSMFFuzzer-4848576776503296.msg",
+        "hsmf/clusterfuzz-testcase-minimized-POIHSMFFuzzer-5336473854148608.msg",
+        "slideshow/clusterfuzz-testcase-minimized-POIHSLFFuzzer-6416153805979648.ppt",
+        "slideshow/clusterfuzz-testcase-minimized-POIHSLFFuzzer-6710128412590080.ppt",
+        "publisher/clusterfuzz-testcase-minimized-POIHPBFFuzzer-4701121678278656.pub",
+        "spreadsheet/clusterfuzz-testcase-minimized-POIHSSFFuzzer-5285517825277952.xls",
+        "spreadsheet/clusterfuzz-testcase-minimized-POIHSSFFuzzer-6322470200934400.xls",
+        "document/clusterfuzz-testcase-minimized-POIHWPFFuzzer-5418937293340672.doc",
+        "document/clusterfuzz-testcase-minimized-POIHWPFFuzzer-5440721166139392.doc",
+        "diagram/clusterfuzz-testcase-minimized-POIHDGFFuzzer-5947849161179136.vsd",
+        "spreadsheet/clusterfuzz-testcase-minimized-POIHSSFFuzzer-5436547081830400.xls",
+        "spreadsheet/clusterfuzz-testcase-minimized-POIHSSFFuzzer-4819588401201152.xls",
+        "diagram/clusterfuzz-testcase-minimized-POIVisioFuzzer-4537225637134336.vsd",
+        "spreadsheet/clusterfuzz-testcase-minimized-POIHSSFFuzzer-6537773940867072.xls",
+        "spreadsheet/clusterfuzz-testcase-minimized-POIHSSFFuzzer-4977868385681408.xls",
+        "spreadsheet/clusterfuzz-testcase-minimized-POIXSSFFuzzer-5089447305609216.xlsx",
+        "spreadsheet/clusterfuzz-testcase-minimized-POIXSSFFuzzer-5089447305609216.xlsx",
+        "spreadsheet/clusterfuzz-testcase-minimized-POIXSSFFuzzer-5089447305609216.xlsx",
 
         // exclude files failing on windows nodes, because of limited JCE policies
         "document/bug53475-password-is-pass.docx",
@@ -273,9 +292,10 @@ public class TestAllFiles {
                         errPrefix + " for " + exClass + " expected message '" + exMessage + "' but had '" + actMsg + "': " + e);
 
                 if (actMsg != null &&
-                        // sometimes ArrayIndexOutOfBoundsException has null-message?!?
+                        // in newer JDK versions IndexOutOfBoundsException switch from empty message
+                        // to more useful content
                         // so skip the check for this type of exception if expected message is null
-                        (exMessage != null || !ArrayIndexOutOfBoundsException.class.isAssignableFrom(exClass))) {
+                        (exMessage != null || !IndexOutOfBoundsException.class.isAssignableFrom(exClass))) {
                     assertNotNull(exMessage,
                             errPrefix + "Expected message was null, but actMsg wasn't: Message: " + actMsg + ": " + e);
                     assertTrue(actMsg.contains(exMessage),

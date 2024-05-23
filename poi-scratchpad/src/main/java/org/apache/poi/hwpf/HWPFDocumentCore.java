@@ -88,7 +88,7 @@ public abstract class HWPFDocumentCore extends POIDocument {
      * Size of the not encrypted part of the FIB
      */
     protected static final int FIB_BASE_LEN = 68;
-    
+
     /**
      * [MS-DOC] 2.2.6.2/3 Office Binary Document ... Encryption:
      * "... The block number MUST be set to zero at the beginning of the stream and
@@ -185,8 +185,8 @@ public abstract class HWPFDocumentCore extends POIDocument {
         _fib = new FileInformationBlock(_mainStream);
 
         DirectoryEntry objectPoolEntry = null;
-        if (directory.hasEntry(STREAM_OBJECT_POOL)) {
-            final Entry entry = directory.getEntry(STREAM_OBJECT_POOL);
+        if (directory.hasEntryCaseInsensitive(STREAM_OBJECT_POOL)) {
+            final Entry entry = directory.getEntryCaseInsensitive(STREAM_OBJECT_POOL);
             if (!(entry instanceof DirectoryEntry)) {
                 throw new IllegalArgumentException("Had unexpected type of entry for name: " + STREAM_OBJECT_POOL + ": " + entry.getClass());
             }
@@ -283,6 +283,9 @@ public abstract class HWPFDocumentCore extends POIDocument {
         EncryptionMode em = fibBase.isFObfuscated() ? EncryptionMode.xor : null;
         EncryptionInfo ei = new EncryptionInfo(leis, em);
         Decryptor dec = ei.getDecryptor();
+        if (dec == null) {
+            throw new EncryptedDocumentException("Invalid encryption info, did not get a matching decryptor");
+        }
         dec.setChunkSize(RC4_REKEYING_INTERVAL);
         try {
             String pass = Biff8EncryptionKey.getCurrentUserPassword();
@@ -341,7 +344,7 @@ public abstract class HWPFDocumentCore extends POIDocument {
      */
     protected byte[] getDocumentEntryBytes(String name, int encryptionOffset, final int len) throws IOException {
         DirectoryNode dir = getDirectory();
-        final Entry entry = dir.getEntry(name);
+        final Entry entry = dir.getEntryCaseInsensitive(name);
         if (!(entry instanceof DocumentEntry)) {
             throw new IllegalArgumentException("Had unexpected type of entry for name: " + name + ": " + entry);
         }

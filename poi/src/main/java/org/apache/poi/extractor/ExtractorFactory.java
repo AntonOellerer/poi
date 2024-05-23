@@ -88,6 +88,21 @@ public final class ExtractorFactory {
     private ExtractorFactory() {
         ClassLoader cl = ExtractorFactory.class.getClassLoader();
         ServiceLoader.load(ExtractorProvider.class, cl).forEach(provider::add);
+
+        // loading of service-files is non-deterministic as it depends on order of loaded jars
+        // however we would like to "prefer" one Factory, so let's make sure the more
+        // powerful "ScratchpadProvider" is sorted first
+        provider.sort((o1, o2) -> {
+            if (o1.getClass() != o2.getClass()) {
+                if (o1.getClass().getSimpleName().equals("OLE2ScratchpadExtractorFactory")) {
+                    return -1;
+                } else if (o2.getClass().getSimpleName().equals("OLE2ScratchpadExtractorFactory")) {
+                    return 1;
+                }
+            }
+
+            return o1.getClass().getName().compareTo(o2.getClass().getName());
+        });
     }
 
     /**
@@ -222,7 +237,7 @@ public final class ExtractorFactory {
 
         POIFSFileSystem poifs = new POIFSFileSystem(is);
         DirectoryNode root = poifs.getRoot();
-        boolean isOOXML = root.hasEntry(DEFAULT_POIFS_ENTRY) || root.hasEntry(OOXML_PACKAGE);
+        boolean isOOXML = root.hasEntryCaseInsensitive(DEFAULT_POIFS_ENTRY) || root.hasEntryCaseInsensitive(OOXML_PACKAGE);
 
         return wp(isOOXML ? FileMagic.OOXML : fm, w -> w.create(root, password));
     }
@@ -267,7 +282,7 @@ public final class ExtractorFactory {
         try {
             poifs = new POIFSFileSystem(file, true);
             DirectoryNode root = poifs.getRoot();
-            boolean isOOXML = root.hasEntry(DEFAULT_POIFS_ENTRY) || root.hasEntry(OOXML_PACKAGE);
+            boolean isOOXML = root.hasEntryCaseInsensitive(DEFAULT_POIFS_ENTRY) || root.hasEntryCaseInsensitive(OOXML_PACKAGE);
             return wp(isOOXML ? FileMagic.OOXML : fm, w -> w.create(root, password));
         } catch (IOException | RuntimeException e) {
             IOUtils.closeQuietly(poifs);
@@ -313,7 +328,7 @@ public final class ExtractorFactory {
      */
     public static POITextExtractor createExtractor(final DirectoryNode root, String password) throws IOException {
         // Encrypted OOXML files go inside OLE2 containers, is this one?
-        if (root.hasEntry(DEFAULT_POIFS_ENTRY) || root.hasEntry(OOXML_PACKAGE)) {
+        if (root.hasEntryCaseInsensitive(DEFAULT_POIFS_ENTRY) || root.hasEntryCaseInsensitive(OOXML_PACKAGE)) {
             return wp(FileMagic.OOXML, w -> w.create(root, password));
         } else {
             return wp(FileMagic.OLE2, w ->  w.create(root, password));
@@ -373,7 +388,9 @@ public final class ExtractorFactory {
 
         ArrayList<POITextExtractor> textExtractors = new ArrayList<>();
         for (Entry dir : dirs) {
-            textExtractors.add(createExtractor((DirectoryNode) dir));
+            if (dir instanceof DirectoryNode) {
+                textExtractors.add(createExtractor((DirectoryNode) dir));
+            }
         }
         for (InputStream stream : nonPOIFS) {
             try {

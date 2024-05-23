@@ -79,6 +79,7 @@ import org.apache.poi.poifs.crypt.CryptoFunctions;
 import org.apache.poi.poifs.crypt.HashAlgorithm;
 import org.apache.poi.poifs.crypt.dsig.facets.SignatureFacet;
 import org.apache.poi.poifs.crypt.dsig.services.RelationshipTransformService;
+import org.apache.poi.util.NotImplemented;
 import org.apache.xml.security.Init;
 import org.apache.xml.security.utils.XMLUtils;
 import org.apache.xmlbeans.XmlOptions;
@@ -153,9 +154,9 @@ import org.w3c.dom.events.MutationEvent;
  * <p>To use SignatureInfo and its sibling classes, you'll need to have the following libs
  * in the classpath:</p>
  * <ul>
- * <li>BouncyCastle bcpkix and bcprov (tested against 1.76)</li>
- * <li>Apache Santuario "xmlsec" (tested against 3.0.2)</li>
- * <li>and log4j-api (tested against 2.20.x)</li>
+ * <li>BouncyCastle bcpkix and bcprov (tested against 1.78.1)</li>
+ * <li>Apache Santuario "xmlsec" (tested against 3.0.x)</li>
+ * <li>and log4j-api (tested against 2.22.x)</li>
  * </ul>
  */
 public class SignatureInfo {
@@ -341,12 +342,17 @@ public class SignatureInfo {
             return new SignaturePart(sigRelPart, SignatureInfo.this);
         }
 
+        /**
+         * This method is not yet supported.
+         *
+         * @throws UnsupportedOperationException this method is not yet supported
+         */
+        @NotImplemented
         @Override
         public void remove() {
             throw new UnsupportedOperationException();
         }
     }
-
 
 
     /**

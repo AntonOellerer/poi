@@ -147,7 +147,7 @@ public class ZipArchiveThresholdInputStream extends FilterInputStream {
         }
 
         try {
-            entry = ((ZipArchiveInputStream) in).getNextZipEntry();
+            entry = ((ZipArchiveInputStream) in).getNextEntry();
             if (guardState && entry != null) {
                 if (++entryCount > MAX_FILE_COUNT) {
                     throw new IOException(String.format(Locale.ROOT, MAX_FILE_COUNT_MSG, MAX_FILE_COUNT));
@@ -155,7 +155,9 @@ public class ZipArchiveThresholdInputStream extends FilterInputStream {
             }
             return entry;
         } catch (ZipException ze) {
-            if (ze.getMessage().startsWith("Unexpected record signature")) {
+            final String msg = ze.getMessage();
+            if (msg.startsWith("Unexpected record signature")
+                    || msg.startsWith("Cannot find zip signature within the file")) {
                 throw new NotOfficeXmlFileException(
                         "No valid entries or contents found, this is not a valid OOXML (Office Open XML) file", ze);
             }

@@ -37,6 +37,7 @@ import org.apache.poi.openxml4j.opc.PackageRelationship;
 import org.apache.poi.sl.usermodel.GraphicalFrame;
 import org.apache.poi.sl.usermodel.ShapeType;
 import org.apache.poi.util.Beta;
+import org.apache.poi.util.NotImplemented;
 import org.apache.poi.util.Units;
 import org.apache.xmlbeans.XmlCursor;
 import org.apache.xmlbeans.XmlException;
@@ -60,6 +61,12 @@ public class XSLFGraphicFrame extends XSLFShape implements GraphicalFrame<XSLFSh
         super(shape,sheet);
     }
 
+    /**
+     * This method is not yet supported.
+     *
+     * @throws UnsupportedOperationException this method is not yet supported
+     */
+    @NotImplemented
     public ShapeType getShapeType(){
         throw new UnsupportedOperationException();
     }
@@ -67,7 +74,14 @@ public class XSLFGraphicFrame extends XSLFShape implements GraphicalFrame<XSLFSh
     @Override
     public Rectangle2D getAnchor(){
         CTTransform2D xfrm = ((CTGraphicalObjectFrame)getXmlObject()).getXfrm();
+        if (xfrm == null) {
+            throw new IllegalArgumentException("Could not retrieve an Xfrm from the XML object");
+        }
+
         CTPoint2D off = xfrm.getOff();
+        if (off == null) {
+            throw new IllegalArgumentException("Could not retrieve Off from the XML object");
+        }
         double x = Units.toPoints(POIXMLUnits.parseLength(off.xgetX()));
         double y = Units.toPoints(POIXMLUnits.parseLength(off.xgetY()));
         CTPositiveSize2D ext = xfrm.getExt();

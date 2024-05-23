@@ -21,11 +21,10 @@ import static org.apache.poi.openxml4j.opc.ContentTypes.RELATIONSHIPS_PART;
 import static org.apache.poi.openxml4j.opc.internal.ContentTypeManager.CONTENT_TYPES_PART_NAME;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.file.Files;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.List;
@@ -116,7 +115,7 @@ public final class ZipPackage extends OPCPackage {
 
     /**
      * Constructor. Opens a Zip based Open XML document from
-     *  an InputStream.
+     *  an InputStream. The InputStream is closed.
      *
      * @param in
      *            Zip input stream to load.
@@ -132,8 +131,30 @@ public final class ZipPackage extends OPCPackage {
         super(access);
         try (ZipArchiveThresholdInputStream zis = ZipHelper.openZipStream(in)) {
             this.zipArchive = new ZipInputStreamZipEntrySource(zis);
-        } catch (final IOException | RuntimeException e) {
-            throw e;
+        }
+    }
+
+    /**
+     * Constructor. Opens a Zip based Open XML document from
+     *  an InputStream.
+     *
+     * @param in
+     *            Zip input stream to load.
+     * @param access
+     *            The package access mode.
+     * @param closeStream
+     *            Whether to close the input stream.
+     * @throws IllegalArgumentException
+     *             If the specified input stream is not an instance of
+     *             ZipInputStream.
+     * @throws IOException
+     *            if input stream cannot be opened, read, or closed
+     * @since POI 5.2.5
+     */
+    ZipPackage(InputStream in, PackageAccess access, boolean closeStream) throws IOException {
+        super(access);
+        try (ZipArchiveThresholdInputStream zis = ZipHelper.openZipStream(in, closeStream)) {
+            this.zipArchive = new ZipInputStreamZipEntrySource(zis);
         }
     }
 
@@ -179,64 +200,38 @@ public final class ZipPackage extends OPCPackage {
     }
 
     private static ZipEntrySource openZipEntrySourceStream(File file) throws InvalidOperationException {
-        final FileInputStream fis;
+        final InputStream fis;
         // Acquire a resource that is needed to read the next level of openZipEntrySourceStream
         try {
             // open the file input stream
-            fis = new FileInputStream(file); // NOSONAR
-        } catch (final FileNotFoundException e) {
+            fis = Files.newInputStream(file.toPath());
+        } catch (final IOException e) {
             // If the source cannot be acquired, abort (no resources to free at this level)
             throw new InvalidOperationException("Can't open the specified file input stream from file: '" + file + "'", e);
         }
 
+        ZipArchiveThresholdInputStream zis = null;
         // If an error occurs while reading the next level of openZipEntrySourceStream, free the acquired resource
         try {
             // read from the file input stream
-            return openZipEntrySourceStream(fis);
+            // Acquire a resource that is needed to read the next level of openZipEntrySourceStream
+            zis = ZipHelper.openZipStream(fis); // NOSONAR
+
+            // If an error occurs while reading the next level of openZipEntrySourceStream, free the acquired resource
+            // read from the zip input stream
+
+            // Acquire the final level resource. If this is acquired successfully, the zip package was read successfully from the input stream
+            return new ZipInputStreamZipEntrySource(zis);
         } catch (final InvalidOperationException|UnsupportedFileFormatException e) {
             // abort: close the zip input stream
             IOUtils.closeQuietly(fis);
+            IOUtils.closeQuietly(zis);
             throw e;
         } catch (final Exception e) {
             // abort: close the file input stream
             IOUtils.closeQuietly(fis);
+            IOUtils.closeQuietly(zis);
             throw new InvalidOperationException("Failed to read the file input stream from file: '" + file + "'", e);
-        }
-    }
-
-    private static ZipEntrySource openZipEntrySourceStream(FileInputStream fis) throws InvalidOperationException {
-        final ZipArchiveThresholdInputStream zis;
-        // Acquire a resource that is needed to read the next level of openZipEntrySourceStream
-        try {
-            // open the zip input stream
-            zis = ZipHelper.openZipStream(fis); // NOSONAR
-        } catch (final IOException e) {
-            // If the source cannot be acquired, abort (no resources to free at this level)
-            throw new InvalidOperationException("Could not open the file input stream", e);
-        }
-
-        // If an error occurs while reading the next level of openZipEntrySourceStream, free the acquired resource
-        try {
-            // read from the zip input stream
-            return openZipEntrySourceStream(zis);
-        } catch (final InvalidOperationException|UnsupportedFileFormatException e) {
-            // abort: close the zip input stream
-            IOUtils.closeQuietly(zis);
-            throw e;
-        } catch (final Exception e) {
-            // abort: close the zip input stream
-            IOUtils.closeQuietly(zis);
-            throw new InvalidOperationException("Failed to read the zip entry source stream", e);
-        }
-    }
-
-    private static ZipEntrySource openZipEntrySourceStream(ZipArchiveThresholdInputStream zis) throws InvalidOperationException {
-        // Acquire the final level resource. If this is acquired successfully, the zip package was read successfully from the input stream
-        try {
-            // open the zip entry source stream
-            return new ZipInputStreamZipEntrySource(zis);
-        } catch (IOException e) {
-            throw new InvalidOperationException("Could not open the specified zip entry source stream", e);
         }
     }
 
@@ -406,11 +401,11 @@ public final class ZipPackage extends OPCPackage {
     protected PackagePart createPartImpl(PackagePartName partName,
             String contentType, boolean loadRelationships) {
         if (contentType == null) {
-            throw new IllegalArgumentException("contentType");
+            throw new IllegalArgumentException("contentType cannot be null");
         }
 
         if (partName == null) {
-            throw new IllegalArgumentException("partName");
+            throw new IllegalArgumentException("partName cannot be null");
         }
 
         try {
@@ -430,19 +425,6 @@ public final class ZipPackage extends OPCPackage {
     }
 
     /**
-     * Delete a part from the package
-     *
-     * @throws IllegalArgumentException
-     *             Throws if the part URI is null or invalid.
-     */
-    @Override
-    protected void removePartImpl(PackagePartName partName) {
-        if (partName == null) {
-            throw new IllegalArgumentException("partUri");
-        }
-    }
-
-    /**
      * Flush the package. Do nothing.
      */
     @Override
@@ -458,22 +440,35 @@ public final class ZipPackage extends OPCPackage {
     @Override
     protected void closeImpl() throws IOException {
         // Flush the package
-        flush();
+        try {
+            flush();
+        } catch (RuntimeException|Error e) {
+            IOUtils.closeQuietly(zipArchive);
+            throw e;
+        }
 
         if (this.originalPackagePath == null || this.originalPackagePath.isEmpty()) {
+            IOUtils.closeQuietly(zipArchive);
             return;
         }
 
         // Save the content
         File targetFile = new File(this.originalPackagePath);
         if (!targetFile.exists()) {
+            IOUtils.closeQuietly(zipArchive);
             throw new InvalidOperationException(
                 "Can't close a package not previously open with the open() method !");
         }
 
         // Case of a package previously open
-        String tempFileName = generateTempFileName(FileHelper.getDirectory(targetFile));
-        File tempFile = TempFile.createTempFile(tempFileName, ".tmp");
+        File tempFile;
+        try {
+            String tempFileName = generateTempFileName(FileHelper.getDirectory(targetFile));
+            tempFile = TempFile.createTempFile(tempFileName, ".tmp");
+        } catch (IOException|RuntimeException|Error e) {
+            IOUtils.closeQuietly(zipArchive);
+            throw e;
+        }
 
         // Save the final package to a temporary file
         boolean success = false;
@@ -482,7 +477,7 @@ public final class ZipPackage extends OPCPackage {
             success = true;
         } finally {
             // Close the current zip file, so we can overwrite it on all platforms
-            IOUtils.closeQuietly(this.zipArchive);
+            IOUtils.closeQuietly(zipArchive);
             try {
                 // Copy the new file over the old one if save() succeed
                 if(success) {

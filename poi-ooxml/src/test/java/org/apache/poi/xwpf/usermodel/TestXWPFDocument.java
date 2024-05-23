@@ -36,6 +36,7 @@ import org.apache.poi.POIDataSamples;
 import org.apache.poi.common.usermodel.PictureType;
 import org.apache.poi.ooxml.POIXMLDocumentPart;
 import org.apache.poi.ooxml.POIXMLProperties;
+import org.apache.poi.ooxml.TrackingInputStream;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.openxml4j.opc.OPCPackage;
 import org.apache.poi.openxml4j.opc.PackageAccess;
@@ -190,11 +191,12 @@ public final class TestXWPFDocument {
             doc.addPictureData(new byte[18], Document.PICTURE_TYPE_EPS);
             doc.addPictureData(new byte[19], Document.PICTURE_TYPE_BMP);
             doc.addPictureData(new byte[20], Document.PICTURE_TYPE_WPG);
+            doc.addPictureData(new byte[21], Document.PICTURE_TYPE_SVG);
 
-            assertEquals(11, doc.getAllPictures().size());
+            assertEquals(12, doc.getAllPictures().size());
 
             try (XWPFDocument doc2 = XWPFTestDataSamples.writeOutAndReadBack(doc)) {
-                assertEquals(11, doc2.getAllPictures().size());
+                assertEquals(12, doc2.getAllPictures().size());
             }
         }
     }
@@ -477,6 +479,28 @@ public final class TestXWPFDocument {
                 assertEquals(insertNewParagraph, docx.getParagraphs().get(0));
                 assertEquals(insertNewParagraph, docx.getBodyElements().get(1));
             }
+        }
+    }
+
+    @Test
+    void testInputStreamClosed() throws IOException {
+        try (TrackingInputStream stream = new TrackingInputStream(
+                POIDataSamples.getDocumentInstance().openResourceAsStream("EnforcedWith.docx"))) {
+            try (XWPFDocument docx = new XWPFDocument(stream)) {
+                assertNotNull(docx.getDocument());
+            }
+            assertTrue(stream.isClosed(), "stream was closed?");
+        }
+    }
+
+    @Test
+    void testInputStreamNotClosedWhenOptionUsed() throws IOException {
+        try (TrackingInputStream stream = new TrackingInputStream(
+                POIDataSamples.getDocumentInstance().openResourceAsStream("EnforcedWith.docx"))) {
+            try (XWPFDocument docx = new XWPFDocument(stream, false)) {
+                assertNotNull(docx.getDocument());
+            }
+            assertFalse(stream.isClosed(), "stream was not closed?");
         }
     }
 

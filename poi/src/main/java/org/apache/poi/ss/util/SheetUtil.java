@@ -38,6 +38,7 @@ import org.apache.poi.ss.usermodel.RichTextString;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.util.ExceptionUtil;
 import org.apache.poi.util.Internal;
 
 
@@ -95,13 +96,13 @@ public class SheetUtil {
     /**
      * drawing context to measure text
      */
-    private static final FontRenderContext fontRenderContext = new FontRenderContext(null, true, true);
+    private static FontRenderContext fontRenderContext = new FontRenderContext(null, true, true);
 
     /**
      * A system property which can be enabled to not fail when the
      * font-system is not available on the current machine
      */
-    private static final boolean ignoreMissingFontSystem =
+    private static boolean ignoreMissingFontSystem =
             Boolean.parseBoolean(System.getProperty("org.apache.poi.ss.ignoreMissingFontSystem"));
 
     /**
@@ -117,8 +118,24 @@ public class SheetUtil {
      * @param formatter formatter used to prepare the text to be measured
      * @param useMergedCells    whether to use merged cells
      * @return  the width in pixels or -1 if cell is empty
+     * @deprecated since POI 5.2.5, it is better to pass defaultCharWidth as a float
      */
     public static double getCellWidth(Cell cell, int defaultCharWidth, DataFormatter formatter, boolean useMergedCells) {
+        return getCellWidth(cell, (float) defaultCharWidth, formatter, useMergedCells);
+    }
+
+
+    /**
+     * Compute width of a single cell
+     *
+     * @param cell the cell whose width is to be calculated
+     * @param defaultCharWidth the width of a single character
+     * @param formatter formatter used to prepare the text to be measured
+     * @param useMergedCells    whether to use merged cells
+     * @return  the width in pixels or -1 if cell is empty
+     * @since POI 5.2.5
+     */
+    public static double getCellWidth(Cell cell, float defaultCharWidth, DataFormatter formatter, boolean useMergedCells) {
         List<CellRangeAddress> mergedRegions = cell.getSheet().getMergedRegions();
         return getCellWidth(cell, defaultCharWidth, formatter, useMergedCells, mergedRegions);
     }
@@ -136,8 +153,29 @@ public class SheetUtil {
      * @param useMergedCells    whether to use merged cells
      * @param mergedRegions The list of merged regions as received via cell.getSheet().getMergedRegions()
      * @return  the width in pixels or -1 if cell is empty
+     * @deprecated since POI 5.2.5, it is better to pass defaultCharWidth as a float
      */
     public static double getCellWidth(Cell cell, int defaultCharWidth, DataFormatter formatter, boolean useMergedCells,
+                                      List<CellRangeAddress> mergedRegions) {
+        return getCellWidth(cell, (float) defaultCharWidth, formatter, useMergedCells, mergedRegions);
+    }
+
+    /**
+     * Compute width of a single cell
+     *
+     * This method receives the list of merged regions as querying it from the cell/sheet
+     * is time-consuming and thus caching the list across cells speeds up certain operations
+     * considerably.
+     *
+     * @param cell the cell whose width is to be calculated
+     * @param defaultCharWidth the width of a single character
+     * @param formatter formatter used to prepare the text to be measured
+     * @param useMergedCells    whether to use merged cells
+     * @param mergedRegions The list of merged regions as received via cell.getSheet().getMergedRegions()
+     * @return  the width in pixels or -1 if cell is empty
+     * @since POI 5.2.5
+     */
+    public static double getCellWidth(Cell cell, float defaultCharWidth, DataFormatter formatter, boolean useMergedCells,
                                       List<CellRangeAddress> mergedRegions) {
         Sheet sheet = cell.getSheet();
         Workbook wb = sheet.getWorkbook();
@@ -219,11 +257,11 @@ public class SheetUtil {
      * @param str the text contained in the cell
      * @return the best fit cell width
      */
-    private static double getCellWidth(int defaultCharWidth, int colspan,
+    private static double getCellWidth(float defaultCharWidth, int colspan,
             CellStyle style, double minWidth, AttributedString str) {
         TextLayout layout = new TextLayout(str.getIterator(), fontRenderContext);
         final Rectangle2D bounds;
-        if(style.getRotation() != 0){
+        if (style.getRotation() != 0) {
             /*
              * Transform the text using a scale so that its height is increased by a multiple of the leading,
              * and then rotate the text before computing the bounds. The scale results in some whitespace around
@@ -270,7 +308,7 @@ public class SheetUtil {
      */
     public static double getColumnWidth(Sheet sheet, int column, boolean useMergedCells, int firstRow, int lastRow){
         DataFormatter formatter = new DataFormatter();
-        int defaultCharWidth = getDefaultCharWidth(sheet.getWorkbook());
+        float defaultCharWidth = getDefaultCharWidthAsFloat(sheet.getWorkbook());
 
         List<CellRangeAddress> mergedRegions = sheet.getMergedRegions();
         double width = -1;
@@ -290,22 +328,47 @@ public class SheetUtil {
      *
      * @param wb the workbook to get the default character width from
      * @return default character width in pixels
+     * @deprecated since POI 5.2.5, it is recommended to switch to {@link #getDefaultCharWidthAsFloat(Workbook)}.
      */
     @Internal
     public static int getDefaultCharWidth(final Workbook wb) {
+        return Math.round(getDefaultCharWidthAsFloat(wb));
+    }
+
+    /**
+     * Get default character width using the Workbook's default font. Note that this can
+     * fail if your OS does not have the right fonts installed.
+     *
+     * @param wb the workbook to get the default character width from
+     * @return default character width in pixels (as a float)
+     * @since POI 5.2.5
+     */
+    @Internal
+    public static float getDefaultCharWidthAsFloat(final Workbook wb) {
         Font defaultFont = wb.getFontAt( 0);
 
         AttributedString str = new AttributedString(String.valueOf(defaultChar));
         copyAttributes(defaultFont, str, 0, 1);
         try {
             TextLayout layout = new TextLayout(str.getIterator(), fontRenderContext);
-            return Math.round(layout.getAdvance());
-        } catch (UnsatisfiedLinkError | NoClassDefFoundError | InternalError e) {
-            if (ignoreMissingFontSystem) {
+            return layout.getAdvance();
+        } catch (Throwable t) {
+            // ignore exception and return a default char width if
+            // the ignore-feature is enabled and the exception indicates that
+            // the underlying font system is not available
+            if (ignoreMissingFontSystem && (
+                    // the three types of exception usually indicate here that the font
+                    // system is not fully installed, i.e. system libraries missing or
+                    // some JDK classes cannot be loaded
+                    t instanceof UnsatisfiedLinkError ||
+                    t instanceof NoClassDefFoundError ||
+                    t instanceof InternalError  ||
+                    // other fatal exceptions will always be rethrown
+                    !ExceptionUtil.isFatal(t))) {
                 return DEFAULT_CHAR_WIDTH;
             }
 
-            throw e;
+            throw t;
         }
     }
 
@@ -321,7 +384,7 @@ public class SheetUtil {
      * @return  the width in pixels or -1 if cell is empty
      */
     private static double getColumnWidthForRow(
-            Row row, int column, int defaultCharWidth, DataFormatter formatter, boolean useMergedCells,
+            Row row, int column, float defaultCharWidth, DataFormatter formatter, boolean useMergedCells,
             List<CellRangeAddress> mergedRegions) {
         if( row == null ) {
             return -1;
@@ -426,5 +489,22 @@ public class SheetUtil {
         // If we get here, then the cell isn't defined, and doesn't
         //  live within any merged regions
         return null;
+    }
+
+    // Getters/Setters are available to allow in-depth testing
+    protected static boolean isIgnoreMissingFontSystem() {
+        return ignoreMissingFontSystem;
+    }
+
+    protected static void setIgnoreMissingFontSystem(boolean value) {
+        ignoreMissingFontSystem = value;
+    }
+
+    protected static FontRenderContext getFontRenderContext() {
+        return fontRenderContext;
+    }
+
+    protected static void setFontRenderContext(FontRenderContext fontRenderContext) {
+        SheetUtil.fontRenderContext = fontRenderContext;
     }
 }

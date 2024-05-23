@@ -21,10 +21,10 @@ import static org.apache.poi.ooxml.POIXMLTypeLoader.DEFAULT_XML_OPTIONS;
 
 import java.awt.Dimension;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -53,6 +53,7 @@ import org.apache.poi.util.IOUtils;
 import org.apache.poi.util.Internal;
 import org.apache.poi.util.LittleEndian;
 import org.apache.poi.util.LittleEndianConsts;
+import org.apache.poi.util.NotImplemented;
 import org.apache.poi.util.Units;
 import org.apache.xmlbeans.XmlException;
 import org.openxmlformats.schemas.presentationml.x2006.main.CTNotesMasterIdList;
@@ -129,14 +130,27 @@ public class XMLSlideShow extends POIXMLDocument
     }
 
     /**
-     * @param is InputStream
+     * @param stream InputStream, which is closed after it is read
      * @throws IOException If reading data from the stream fails
      * @throws POIXMLException a RuntimeException that can be caused by invalid OOXML data
      * @throws IllegalStateException a number of other runtime exceptions can be thrown, especially if there are problems with the
      * input format
      */
-    public XMLSlideShow(InputStream is) throws IOException {
-        this(PackageHelper.open(is));
+    public XMLSlideShow(InputStream stream) throws IOException {
+        this(stream, true);
+    }
+
+    /**
+     * @param stream InputStream
+     * @param closeStream Whether to close the InputStream
+     * @throws IOException If reading data from the stream fails
+     * @throws POIXMLException a RuntimeException that can be caused by invalid OOXML data
+     * @throws IllegalStateException a number of other runtime exceptions can be thrown, especially if there are problems with the
+     * input format
+     * @since POI 5.2.5
+     */
+    public XMLSlideShow(InputStream stream, boolean closeStream) throws IOException {
+        this(PackageHelper.open(stream, closeStream));
     }
 
     static OPCPackage empty() {
@@ -607,7 +621,7 @@ public class XMLSlideShow extends POIXMLDocument
     @Override
     public XSLFPictureData addPicture(File pict, PictureType format) throws IOException {
         byte[] data = IOUtils.safelyAllocate(pict.length(), MAX_RECORD_LENGTH);
-        try (InputStream is = new FileInputStream(pict)) {
+        try (InputStream is = Files.newInputStream(pict.toPath())) {
             IOUtils.readFully(is, data);
         }
         return addPicture(data, format);
@@ -657,8 +671,14 @@ public class XMLSlideShow extends POIXMLDocument
         return _tableStyles;
     }
 
-    @SuppressWarnings("RedundantThrows")
+    /**
+     * This method is not yet supported.
+     *
+     * @throws UnsupportedOperationException this method is not yet supported
+     */
     @Override
+    @NotImplemented
+    @SuppressWarnings("RedundantThrows")
     public MasterSheet<XSLFShape, XSLFTextParagraph> createMasterSheet() throws IOException {
         // TODO: implement!
         throw new UnsupportedOperationException();

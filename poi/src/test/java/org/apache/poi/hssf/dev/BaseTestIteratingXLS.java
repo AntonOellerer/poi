@@ -88,6 +88,8 @@ public abstract class BaseTestIteratingXLS {
         excludes.put("64130.xls", OldExcelFormatException.class);
         // fuzzed binaries
         excludes.put("clusterfuzz-testcase-minimized-POIHSSFFuzzer-6322470200934400.xls", RuntimeException.class);
+        excludes.put("clusterfuzz-testcase-minimized-POIHSSFFuzzer-4819588401201152.xls", RuntimeException.class);
+        excludes.put("clusterfuzz-testcase-minimized-POIHSSFFuzzer-6537773940867072.xls", RuntimeException.class);
         return excludes;
     }
 

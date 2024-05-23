@@ -21,8 +21,10 @@ module org.apache.poi.ooxml {
     requires transitive org.apache.poi.ooxml.schemas;
     requires org.apache.commons.collections4;
     requires org.apache.commons.codec;
+    requires org.apache.commons.compress;
+    requires org.apache.commons.io;
     requires commons.math3;
-    requires SparseBitSet;
+    requires com.zaxxer.sparsebitset;
     requires org.apache.logging.log4j;
     requires java.logging;
     requires java.desktop;

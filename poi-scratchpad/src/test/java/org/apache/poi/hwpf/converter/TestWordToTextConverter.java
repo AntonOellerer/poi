@@ -43,7 +43,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 public class TestWordToTextConverter {
-    private static final Logger LOG = LogManager.getLogger(WordToTextConverter.class);
+    private static final Logger LOG = LogManager.getLogger(TestWordToTextConverter.class);
 
     private static final List<String> failingFiles = Arrays.asList(
         // Excel file
@@ -52,7 +52,10 @@ public class TestWordToTextConverter {
         "clusterfuzz-testcase-minimized-POIHWPFFuzzer-5418937293340672.doc",
         "TestHPSFWritingFunctionality.doc",
         "clusterfuzz-testcase-minimized-POIHWPFFuzzer-4947285593948160.doc",
-        "clusterfuzz-testcase-minimized-POIHWPFFuzzer-5440721166139392.doc"
+        "clusterfuzz-testcase-minimized-POIHWPFFuzzer-5440721166139392.doc",
+        "clusterfuzz-testcase-minimized-POIHWPFFuzzer-5050208641482752.doc",
+        "clusterfuzz-testcase-minimized-POIHWPFFuzzer-4892412469968896.doc",
+        "clusterfuzz-testcase-minimized-POIHWPFFuzzer-6610789829836800.doc"
     );
 
     /**
@@ -94,13 +97,13 @@ public class TestWordToTextConverter {
     @ParameterizedTest
     @MethodSource("files")
     void testAllFiles(File file) throws Exception {
-        LOG.info("Testing " + file);
+        LOG.info("Testing {}", file);
         try (FileInputStream stream = new FileInputStream(file)) {
             InputStream is = FileMagic.prepareToCheckMagic(stream);
             FileMagic fm = FileMagic.valueOf(is);
 
             if (fm != FileMagic.OLE2) {
-                LOG.info("Skip non-doc file " + file);
+                LOG.info("Skip non-doc file {}", file);
 
                 return;
             }

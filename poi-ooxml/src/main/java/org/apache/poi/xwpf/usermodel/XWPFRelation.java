@@ -138,7 +138,7 @@ public final class XWPFRelation extends POIXMLRelation {
     );
     public static final XWPFRelation HYPERLINK = new XWPFRelation(
         null,
-        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink",
+        PackageRelationshipTypes.HYPERLINK_PART,
         null
     );
     public static final XWPFRelation COMMENT = new XWPFRelation(
@@ -234,6 +234,12 @@ public final class XWPFRelation extends POIXMLRelation {
             "/ppt/media/hdphoto#.wdp",
             XWPFPictureData::new, XWPFPictureData::new
     );
+    public static final XWPFRelation IMAGE_SVG = new XWPFRelation(
+        PictureType.SVG.contentType,
+        IMAGE_PART,
+        "/word/media/image#.svg",
+        XWPFPictureData::new, XWPFPictureData::new
+);
     public static final XWPFRelation IMAGES = new XWPFRelation(
             null,
             IMAGE_PART,
@@ -271,4 +277,12 @@ public final class XWPFRelation extends POIXMLRelation {
         return _table.get(rel);
     }
 
+    @Override
+    public String toString() {
+        return "XWPFRelation{" +
+                //getRelation() + "/" +
+                getContentType() + "/" +
+                getDefaultFileName() +
+                "}";
+    }
 }

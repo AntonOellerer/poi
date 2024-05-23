@@ -752,8 +752,12 @@ public class XSLFTableCell extends XSLFTextShape implements TableCell<XSLFShape,
                     }
 
                     XSLFTheme theme = getSheet().getTheme();
-                    final XSLFColor c = new XSLFColor(txStyle, theme, phClr, getSheet());
-                    return DrawPaint.createSolidPaint(c.getColorStyle());
+                    try {
+                        final XSLFColor c = new XSLFColor(txStyle, theme, phClr, getSheet());
+                        return DrawPaint.createSolidPaint(c.getColorStyle());
+                    } catch (IllegalArgumentException e) {
+                        return super.getFontColor();
+                    }
                 }
             }
         }
@@ -766,7 +770,7 @@ public class XSLFTableCell extends XSLFTextShape implements TableCell<XSLFShape,
                 return super.isBold();
             } else {
                 final CTTextCharacterProperties rPr = super.getRPr(false);
-                if (rPr.isSetB()) {
+                if (rPr != null && rPr.isSetB()) {
                     // If this run has bold set locally, then it overrides table cell style.
                     return rPr.getB();
                 } else {
@@ -784,7 +788,7 @@ public class XSLFTableCell extends XSLFTextShape implements TableCell<XSLFShape,
                 return super.isItalic();
             } else {
                 final CTTextCharacterProperties rPr = super.getRPr(false);
-                if (rPr.isSetI()) {
+                if (rPr != null && rPr.isSetI()) {
                     // If this run has italic set locally, then it overrides table cell style.
                     return rPr.getI();
                 } else {

@@ -150,14 +150,27 @@ public class XWPFDocument extends POIXMLDocument implements Document, IBody {
     }
 
     /**
-     * @param is The InputStream to read data from
+     * @param stream The InputStream to read data from - the stream is closed
      * @throws IOException If reading data from the stream fails
      * @throws POIXMLException a RuntimeException that can be caused by invalid OOXML data
      * @throws IllegalStateException a number of other runtime exceptions can be thrown, especially if there are problems with the
      * input format
      */
-    public XWPFDocument(InputStream is) throws IOException {
-        super(PackageHelper.open(is));
+    public XWPFDocument(InputStream stream) throws IOException {
+        this(stream, true);
+    }
+
+    /**
+     * @param stream The InputStream to read data from
+     * @param closeStream Whether to close the InputStream
+     * @throws IOException If reading data from the stream fails
+     * @throws POIXMLException a RuntimeException that can be caused by invalid OOXML data
+     * @throws IllegalStateException a number of other runtime exceptions can be thrown, especially if there are problems with the
+     * input format
+     * @since POI 5.2.5
+     */
+    public XWPFDocument(InputStream stream, boolean closeStream) throws IOException {
+        super(PackageHelper.open(stream, closeStream));
 
         //build a tree of POIXMLDocumentParts, this workbook being the root
         load(XWPFFactory.getInstance());
@@ -219,7 +232,7 @@ public class XWPFDocument extends POIXMLDocument implements Document, IBody {
                                     bodyElements.add(p);
                                     paragraphs.add(p);
                                 } else if (bodyObj instanceof CTTbl) {
-                                    XWPFTable t = new XWPFTable((CTTbl) bodyObj, this);
+                                    XWPFTable t = new XWPFTable((CTTbl) bodyObj, this, false);
                                     bodyElements.add(t);
                                     tables.add(t);
                                 } else if (bodyObj instanceof CTSdtBlock) {
@@ -233,7 +246,7 @@ public class XWPFDocument extends POIXMLDocument implements Document, IBody {
                 }
             }
             // Sort out headers and footers
-            if (doc.getDocument().getBody().getSectPr() != null) {
+            if (doc.getDocument().getBody() != null && doc.getDocument().getBody().getSectPr() != null) {
                 headerFooterPolicy = new XWPFHeaderFooterPolicy(this);
             }
 
@@ -312,11 +325,11 @@ public class XWPFDocument extends POIXMLDocument implements Document, IBody {
         for (RelationPart rp : getRelationParts()) {
             POIXMLDocumentPart p = rp.getDocumentPart();
             String relation = rp.getRelationship().getRelationshipType();
-            if (relation.equals(XWPFRelation.FOOTNOTE.getRelation())) {
+            if (relation.equals(XWPFRelation.FOOTNOTE.getRelation()) && p instanceof XWPFFootnotes) {
                 this.footnotes = (XWPFFootnotes) p;
                 this.footnotes.onDocumentRead();
                 this.footnotes.setIdManager(footnoteIdManager);
-            } else if (relation.equals(XWPFRelation.ENDNOTE.getRelation())) {
+            } else if (relation.equals(XWPFRelation.ENDNOTE.getRelation()) && p instanceof XWPFEndnotes) {
                 this.endnotes = (XWPFEndnotes) p;
                 this.endnotes.onDocumentRead();
                 this.endnotes.setIdManager(footnoteIdManager);

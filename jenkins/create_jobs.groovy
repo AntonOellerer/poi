@@ -24,14 +24,6 @@ def poijobs = [
         ],
         [ name: 'POI-DSL-1.11', jdk: '1.11', trigger: triggerSundays, skipcigame: true
         ],
-        [ name: 'POI-DSL-1.15', jdk: '1.15', trigger: triggerSundays, skipcigame: true,
-          // let's save some CPU cycles here, 15 is not an LTS and JDK 16 is GA
-          disabled: true
-        ],
-        [ name: 'POI-DSL-1.16', jdk: '1.16', trigger: triggerSundays, skipcigame: true,
-          // let's save some CPU cycles here, 16 is not an LTS and JDK 17 is GA
-          disabled: true
-        ],
         [ name: 'POI-DSL-1.17', jdk: '1.17', trigger: 'H */12 * * *', skipcigame: true
         ],
         // Jenkins on ci-builds.apache.org does not support spotbugs with a new enough version of asm for Java18+
@@ -40,16 +32,31 @@ def poijobs = [
           disabled: true
         ],
         // Jenkins on ci-builds.apache.org does not support spotbugs with a new enough version of asm for Java18+
-        [ name: 'POI-DSL-1.19', jdk: '1.19', trigger: triggerSundays, skipcigame: true, skipSpotbugs: true
+        [ name: 'POI-DSL-1.19', jdk: '1.19', trigger: triggerSundays, skipcigame: true, skipSpotbugs: true,
+          // let's save some CPU cycles here, 19 is not a LTS and JDK 20 is out
+          disabled: true
         ],
         // Jenkins on ci-builds.apache.org does not support spotbugs with a new enough version of asm for Java18+
-        [ name: 'POI-DSL-1.20', jdk: '1.20', trigger: triggerSundays, skipcigame: true, skipSpotbugs: true
+        [ name: 'POI-DSL-1.20', jdk: '1.20', trigger: triggerSundays, skipcigame: true, skipSpotbugs: true,
+          // let's save some CPU cycles here, 20 is not a LTS and JDK 21 is out
+          disabled: true
         ],
         // Jenkins on ci-builds.apache.org does not support spotbugs with a new enough version of asm for Java18+
         [ name: 'POI-DSL-1.21', jdk: '1.21', trigger: 'H */12 * * *', skipcigame: true, skipSpotbugs: true
         ],
         // Jenkins on ci-builds.apache.org does not support spotbugs with a new enough version of asm for Java18+
-        [ name: 'POI-DSL-1.22', jdk: '1.22', trigger: triggerSundays, skipcigame: true, skipSpotbugs: true
+        [ name: 'POI-DSL-1.22', jdk: '1.22', trigger: triggerSundays, skipcigame: true, skipSpotbugs: true,
+          // use Ant for building until Gradle supports JDK 22
+          // see https://docs.gradle.org/current/userguide/compatibility.html
+          // and https://github.com/gradle/gradle/issues/26162
+          useAnt: true
+        ],
+        // Jenkins on ci-builds.apache.org does not support spotbugs with a new enough version of asm for Java18+
+        [ name: 'POI-DSL-1.23', jdk: '1.23', trigger: triggerSundays, skipcigame: true, skipSpotbugs: true,
+          // use Ant for building until Gradle supports JDK 23
+          // see https://docs.gradle.org/current/userguide/compatibility.html
+          // and https://github.com/gradle/gradle/issues/26162
+          useAnt: true
         ],
         // Use Ant-build for now as selecting IBM JDK via toolchain does not work (yet)
         [ name: 'POI-DSL-IBM-JDK', jdk: 'IBMJDK', trigger: triggerSundays, skipcigame: true, useAnt: true
@@ -80,20 +87,12 @@ def poijobs = [
 //		  // replaced by Gradle-based build now
 //		  disabled: true
 //        ],
-        [ name: 'POI-DSL-SonarQube-Gradle', jdk: '1.11', trigger: 'H 7 * * *', sonar: true, skipcigame: true
+        [ name: 'POI-DSL-SonarQube-Gradle', jdk: '1.17', trigger: 'H 7 * * *', sonar: true, skipcigame: true
         ],
         [ name: 'POI-DSL-Windows-1.8', trigger: 'H */12 * * *', windows: true, slaves: 'Windows', jenkinsLite: true
         ],
         [ name: 'POI-DSL-Windows-1.11', jdk: '1.11', trigger: triggerSundays, windows: true, slaves: 'Windows',
           jenkinsLite: true
-        ],
-        [ name: 'POI-DSL-Windows-1.15', jdk: '1.15', trigger: triggerSundays, windows: true, slaves: 'Windows', skipcigame: true,
-          // let's save some CPU cycles here, 14 is not an LTS and JDK 15 is GA as of 15 September 2020
-          disabled: true
-        ],
-        [ name: 'POI-DSL-Windows-1.16', jdk: '1.16', trigger: triggerSundays, windows: true, slaves: 'Windows', skipcigame: true,
-          // let's save some CPU cycles here, 16 is not an LTS and JDK 17 is GA
-          disabled: true
         ],
         [ name: 'POI-DSL-Windows-1.17', jdk: '1.17', trigger: 'H */12 * * *', windows: true, slaves: 'Windows', skipcigame: true
         ],
@@ -102,11 +101,23 @@ def poijobs = [
           // let's save some CPU cycles here, 18 is not an LTS and JDK 20 is out
           disabled: true
         ],
-        [ name: 'POI-DSL-Windows-1.20', jdk: '1.20', trigger: triggerSundays, windows: true, slaves: 'Windows', skipcigame: true
+        [ name: 'POI-DSL-Windows-1.20', jdk: '1.20', trigger: triggerSundays, windows: true, slaves: 'Windows', skipcigame: true,
+          // let's save some CPU cycles here, 20 is not a LTS and JDK 21 is out
+          disabled: true
         ],
         [ name: 'POI-DSL-Windows-1.21', jdk: '1.21', trigger: 'H */12 * * *', windows: true, slaves: 'Windows', skipcigame: true
         ],
-        [ name: 'POI-DSL-Windows-1.22', jdk: '1.22', trigger: triggerSundays, windows: true, slaves: 'Windows', skipcigame: true
+        [ name: 'POI-DSL-Windows-1.22', jdk: '1.22', trigger: triggerSundays, windows: true, slaves: 'Windows', skipcigame: true,
+          // use Ant for building until Gradle supports JDK 22
+          // see https://docs.gradle.org/current/userguide/compatibility.html
+          // and https://github.com/gradle/gradle/issues/26162
+          useAnt: true
+        ],
+        [ name: 'POI-DSL-Windows-1.23', jdk: '1.23', trigger: triggerSundays, windows: true, slaves: 'Windows', skipcigame: true,
+          // use Ant for building until Gradle supports JDK 22
+          // see https://docs.gradle.org/current/userguide/compatibility.html
+          // and https://github.com/gradle/gradle/issues/26162
+          useAnt: true
         ],
         [ name: 'POI-DSL-Github-PullRequests', trigger: '', skipcigame: true, disabled: true
         ],
@@ -116,10 +127,6 @@ def xmlbeansjobs = [
         [ name: 'POI-XMLBeans-DSL-1.8', jdk: '1.8', trigger: 'H */12 * * *', skipcigame: true,
         ],
         [ name: 'POI-XMLBeans-DSL-1.11', jdk: '1.11', trigger: triggerSundays, skipcigame: true,
-        ],
-        [ name: 'POI-XMLBeans-DSL-1.16', jdk: '1.16', trigger: triggerSundays, skipcigame: true,
-          // let's save some CPU cycles here, 16 is not an LTS and JDK 17 is GA
-          disabled: true
         ],
         [ name: 'POI-XMLBeans-DSL-1.17', jdk: '1.17', trigger: 'H */12 * * *', skipcigame: true,
         ],
@@ -132,14 +139,16 @@ def xmlbeansjobs = [
           disabled: true
         ],
         [ name: 'POI-XMLBeans-DSL-1.20', jdk: '1.20', trigger: triggerSundays, skipcigame: true,
+          // let's save some CPU cycles here, 20 is not an LTS and JDK 21 is out
+          disabled: true
         ],
         [ name: 'POI-XMLBeans-DSL-1.21', jdk: '1.21', trigger: 'H */12 * * *', skipcigame: true,
         ],
         [ name: 'POI-XMLBeans-DSL-1.22', jdk: '1.22', trigger: triggerSundays, skipcigame: true,
         ],
-        [ name: 'POI-XMLBeans-DSL-1.20', jdk: '1.20', trigger: triggerSundays, skipcigame: true,
+        [ name: 'POI-XMLBeans-DSL-1.23', jdk: '1.23', trigger: triggerSundays, skipcigame: true,
         ],
-        [ name: 'POI-XMLBeans-DSL-Sonar', jdk: '1.11', trigger: triggerSundays, skipcigame: true,
+        [ name: 'POI-XMLBeans-DSL-Sonar', jdk: '1.17', trigger: triggerSundays, skipcigame: true,
           sonar: true
         ]
 ]
@@ -159,14 +168,13 @@ def defaultSlaves = '(ubuntu)&&!beam&&!cloud-slave&&!H29'
 def jdkMapping = [
         '1.8': [ jenkinsJdk: 'jdk_1.8_latest', jdkVersion: 8, jdkVendor: '' ],
         '1.11': [ jenkinsJdk: 'jdk_11_latest', jdkVersion: 11, jdkVendor: '' ],
-        '1.15': [ jenkinsJdk: 'jdk_15_latest', jdkVersion: 15, jdkVendor: '' ],
-        '1.16': [ jenkinsJdk: 'jdk_16_latest', jdkVersion: 16, jdkVendor: '' ],
         '1.17': [ jenkinsJdk: 'jdk_17_latest', jdkVersion: 17, jdkVendor: '' ],
         '1.18': [ jenkinsJdk: 'jdk_18_latest', jdkVersion: 18, jdkVendor: '' ],
         '1.19': [ jenkinsJdk: 'jdk_19_latest', jdkVersion: 19, jdkVendor: '' ],
         '1.20': [ jenkinsJdk: 'jdk_20_latest', jdkVersion: 20, jdkVendor: '' ],
         '1.21': [ jenkinsJdk: 'jdk_21_latest', jdkVersion: 21, jdkVendor: '' ],
         '1.22': [ jenkinsJdk: 'jdk_22_latest', jdkVersion: 22, jdkVendor: '' ],
+        '1.23': [ jenkinsJdk: 'jdk_23_latest', jdkVersion: 23, jdkVendor: '' ],
         'OpenJDK 1.8': [ jenkinsJdk: 'adoptopenjdk_hotspot_8u282', jdkVersion: 8, jdkVendor: 'adoptopenjdk' ],
         'IBMJDK': [ jenkinsJdk: 'ibmjdk_1.8.0_261', jdkVersion: 8, jdkVendor: 'ibm' ]
 ]
@@ -358,7 +366,7 @@ poijobs.each { poijob ->
 
                 gradle {
                     switches('-PenableSonar')
-                    switches('-Dsonar.login=${POI_SONAR_TOKEN}')
+                    switches('-Dsonar.token=${POI_SONAR_TOKEN}')
                     switches('-Dsonar.organization=apache')
                     switches('-Dsonar.projectKey=poi-parent')
                     switches('-Dsonar.host.url=https://sonarcloud.io')
@@ -369,7 +377,7 @@ poijobs.each { poijob ->
                     tasks('clean')
                     tasks('check')
                     tasks('jacocoTestReport')
-                    tasks('sonarqube')
+                    tasks('sonar')
                     useWrapper(true)
                 }
             }
@@ -458,7 +466,7 @@ poijobs.each { poijob ->
                     }
                 }
                 // in archive, junit and jacoco publishers, matches beneath build/*/build/... are for Gradle-build results
-                archiveArtifacts('build/dist/*.zip,build/dist/*.tgz,build/dist/maven/*/*.jar,build/coverage/**,*/build/reports/*.bom.*,build/hs_err*.log')
+                archiveArtifacts('build/dist/*.zip,build/dist/*.tgz,build/dist/maven/*/*.jar,build/dist/maven/*/*.pom,build/dist/maven/*/*.asc,build/dist/maven/*/*.sha256,build/dist/maven/*/*.sha512,build/coverage/**,*/build/reports/*.bom.*,build/hs_err*.log')
                 /* this plugin is currently missing on the Apache Jenkins instance
                 warnings(['Java Compiler (javac)', 'JavaDoc Tool'], null) {
                     resolveRelativePaths()
@@ -509,7 +517,7 @@ xmlbeansjobs.each { xjob ->
         label(slaves)
         environmentVariables {
             env('LANG', 'en_US.UTF-8')
-            if (jdkKey == '1.11' || jdkKey == '1.15' || jdkKey == '1.16' || jdkKey == '1.17'
+            if (jdkKey == '1.11' || jdkKey == '1.17'
                     || jdkKey == '1.18' || jdkKey == '1.19' || jdkKey == '1.20' || jdkKey == '1.21') {
                 env('ANT_OPTS', '--add-opens=java.xml/com.sun.org.apache.xerces.internal.util=ALL-UNNAMED --add-opens=java.base/java.lang=ALL-UNNAMED')
             }
@@ -556,7 +564,7 @@ xmlbeansjobs.each { xjob ->
             gradle {
                 if (xjob.sonar) {
                     switches('-PenableSonar')
-                    switches('-Dsonar.login=${POI_SONAR_TOKEN}')
+                    switches('-Dsonar.token=${POI_SONAR_TOKEN}')
                     switches('-Dsonar.organization=apache')
                     switches('-Dsonar.projectKey=apache_xmlbeans')
                     switches('-Dsonar.host.url=https://sonarcloud.io')
@@ -569,7 +577,7 @@ xmlbeansjobs.each { xjob ->
                 tasks('jenkins')
                 tasks('jacocoTestReport')
                 if (xjob.sonar) {
-                    tasks('sonarqube')
+                    tasks('sonar')
                 }
                 useWrapper(true)
             }
@@ -630,19 +638,13 @@ Unfortunately we often see builds break because of changes/new machines...''')
         jdk(
                 'jdk_1.8_latest',
                 'jdk_11_latest',
-                /* don't look for JDKs that are out of support
-                'jdk_10_latest',
-                'jdk_12_latest',
-                'jdk_13_latest',
-                'jdk_14_latest',
-                'jdk_15_latest',
-                'jdk_16_latest',*/
                 'jdk_17_latest',
                 'jdk_18_latest',
                 'jdk_19_latest',
                 'jdk_20_latest',
                 'jdk_21_latest',
                 'jdk_22_latest',
+                'jdk_23_latest',
                 'adoptopenjdk_hotspot_8u282',
                 'ibmjdk_1.8.0_261'
         )

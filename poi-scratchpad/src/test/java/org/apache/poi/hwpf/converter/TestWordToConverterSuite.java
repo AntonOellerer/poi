@@ -38,8 +38,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-public class TestWordToConverterSuite
-{
+public class TestWordToConverterSuite {
     /**
      * YK: a quick hack to exclude failing documents from the suite.
      */
@@ -60,7 +59,10 @@ public class TestWordToConverterSuite
         "clusterfuzz-testcase-minimized-POIHWPFFuzzer-5418937293340672.doc",
         "TestHPSFWritingFunctionality.doc",
         "clusterfuzz-testcase-minimized-POIHWPFFuzzer-4947285593948160.doc",
-        "clusterfuzz-testcase-minimized-POIHWPFFuzzer-5440721166139392.doc"
+        "clusterfuzz-testcase-minimized-POIHWPFFuzzer-5440721166139392.doc",
+        "clusterfuzz-testcase-minimized-POIHWPFFuzzer-5050208641482752.doc",
+        "clusterfuzz-testcase-minimized-POIHWPFFuzzer-4892412469968896.doc",
+        "clusterfuzz-testcase-minimized-POIHWPFFuzzer-6610789829836800.doc"
     );
 
     public static Stream<Arguments> files() {
@@ -139,6 +141,4 @@ public class TestWordToConverterSuite
         // no exceptions
         assertNotNull(stringWriter.toString());
     }
-
-
 }

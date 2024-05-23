@@ -229,7 +229,7 @@ public final class POIXMLExtractorFactory implements ExtractorProvider {
 
             // Grab the core document part, and try to identify from that
             final PackagePart corePart = pkg.getPart(core.getRelationship(0));
-            final String contentType = corePart.getContentType();
+            final String contentType = corePart == null ? null : corePart.getContentType();
 
             // Is it XSSF?
             for (XSSFRelation rel : XSSFExcelExtractor.SUPPORTED_TYPES) {
@@ -282,13 +282,13 @@ public final class POIXMLExtractorFactory implements ExtractorProvider {
     @Override
     public POITextExtractor create(DirectoryNode poifsDir, String password) throws IOException {
         // First, check for plain OOXML package
-        if (poifsDir.hasEntry(OOXML_PACKAGE)) {
+        if (poifsDir.hasEntryCaseInsensitive(OOXML_PACKAGE)) {
             try (InputStream is = poifsDir.createDocumentInputStream(OOXML_PACKAGE)) {
                 return create(is, password);
             }
         }
 
-        if (poifsDir.hasEntry(Decryptor.DEFAULT_POIFS_ENTRY)) {
+        if (poifsDir.hasEntryCaseInsensitive(Decryptor.DEFAULT_POIFS_ENTRY)) {
             EncryptionInfo ei = new EncryptionInfo(poifsDir);
             Decryptor dec = ei.getDecryptor();
             try {
